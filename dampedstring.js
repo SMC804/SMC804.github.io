@@ -36,8 +36,6 @@ class DampedStringProcessor extends AudioWorkletProcessor
         this.c = 2 * this.L * this.f0;
 
         this.h = Math.sqrt(this.c * this.c * this.k * this.k + 4 * this.sigma1 * this.k);
-        console.log(this.h);
-        console.log(this.c * this.k);
         this.N = Math.floor(this.L / this.h);
         this.h = 1.0 * this.L / this.N;
 
@@ -51,12 +49,6 @@ class DampedStringProcessor extends AudioWorkletProcessor
         for (let i = 3; i <= 9; i++) {
             this.prevU[i] = 0.5 * (1 - Math.cos(2 * Math.PI * (i - 3) / 6));
             this.currU[i] = this.prevU[i];
-        }
-
-        this.port.onmessage = (e) => {
-            if (e.data == 'stop') {
-                this.playing = false;
-            }
         }
     }
 
@@ -90,7 +82,6 @@ class DampedStringProcessor extends AudioWorkletProcessor
             this.currU = this.nextU;
             this.nextU = new Array(this.N+1).fill(0);
         }
-        return this.playing;
     }
 }
 
