@@ -29,13 +29,15 @@ class DampedStringProcessor extends AudioWorkletProcessor
 
         this.L = 1;
         this.f0 = 400;
-        this.sigma0 =  5;
-        this.sigma1 = 0;
+        this.sigma0 = 1;
+        this.sigma1 = 0.005;
 
         this.k = 1.0 / 44100;
         this.c = 2 * this.L * this.f0;
 
         this.h = Math.sqrt(this.c * this.c * this.k * this.k + 4 * this.sigma1 * this.k);
+        console.log(this.h);
+        console.log(this.c * this.k);
         this.N = Math.floor(this.L / this.h);
         this.h = 1.0 * this.L / this.N;
 
@@ -80,7 +82,8 @@ class DampedStringProcessor extends AudioWorkletProcessor
         {
             for (let l = 1; l < this.N; l++)
             {
-                this.nextU[l] = 2 * this.currU[l] - this.prevU[l] + this.lambdasq * (this.currU[l+1] - 2*this.currU[l] + this.currU[l-1]);
+                let freqdependent = 2 * this.sigma1 * this.k * (this.currU[l+1] - 2*this.currU[l] + this.currU[l-1] - this.prevU[l+1] + 2 * this.prevU[l] - this.prevU[l-1]) / (this.h * this.h);
+                this.nextU[l] = (2 * this.currU[l] - this.prevU[l] + this.lambdasq * (this.currU[l+1] - 2*this.currU[l] + this.currU[l-1]) + 2 * this.sigma0 * this.k * this.prevU[l] + freqdependent) / (1 + 2*this.sigma0 * this.k);
             }
             output[i] = this.nextU[listeningpoint];
             this.prevU = this.currU;
