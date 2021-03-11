@@ -1,34 +1,26 @@
 let AudioContext = window.AudioContext || window.webkitAudioContext;
 let audioCtx;
-let fs;
-
-let dsNode;
-let constantNode;
+let dspNode;
 
 async function init()
 {
     audioCtx = new AudioContext();
-    fs = audioCtx.sampleRate;
-    await audioCtx.audioWorklet.addModule('dampedstring.js');
-}
+    
+    // pass folder name of wasm file
+    factory = new StiffString(audioCtx, 'binary');
+    dspNode = await factory.load();
+    dspNode.connect(audioCtx.destination);
 
+    // description of the input parameters set in Faust (e.g. sliders, buttons etc)
+    console.log(dspNode.getParams());
+}
 
 async function play()
 {
     if (!audioCtx) await init();
-
-    constantNode = audioCtx.createConstantSource();
-
-    dsNode = new AudioWorkletNode(audioCtx, 'damped-string-processor');
-
-    constantNode.connect(dsNode);
-    dsNode.connect(audioCtx.destination);
-
-    constantNode.start();
-}
-
-function stop()
-{
-    dsNode.port.postMessage('stop');
-    constantNode.stop();
+    // press button down
+    dspNode.setParamValue('/StiffString/Play', true);
+    
+    // release button (need to shortly wait)
+    setTimeout(() => dspNode.setParamValue('/StiffString/Play', false), 50);
 }
