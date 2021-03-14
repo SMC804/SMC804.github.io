@@ -2,13 +2,13 @@ import("stdfaust.lib");
 
 
 // 'substitutable' parameters
-nPoints = 100;
 T = 150;                    // Tension [N]
 radius = 3.5560e-04;        // Radius (0.016 gauge) [m]
 rho = 8.05*10^3;            // Density [kg/m^3];
 Emod = 174e4;               // Young modulus [Pa]
 sigma1 = 0.1;              // Frequency dependent damping
 sigma0 = 0.005;            // Frequency independent damping
+Length = 1;
 
 // calculated parameters
 Area = ma.PI * radius^2;
@@ -16,11 +16,13 @@ I = (ma.PI * radius^4) / 4;
 K = sqrt(Emod * I / rho / Area); // kappa
 c = sqrt(T / rho / Area);
 
-k = 1/ma.SR;
+k = 1/44100; // hardcoded because nPoints needs to be known at compile time
+
 //Stability condition
 coeff = c^2*k^2 + 4*sigma1*k;
-h = sqrt((coeff + sqrt((coeff)^2 + 16*k^2*K^2))/2);
-
+true_h = sqrt((coeff + sqrt((coeff)^2 + 16*k^2*K^2))/2);
+nPoints = floor(Length / true_h);
+h = Length / nPoints;
 
 //----------------------------------Equations--------------------------------//
 den = 1+sigma0*k;
