@@ -39,9 +39,9 @@ constructor(height, width, number, parent) {
     this.parent.appendChild(this.canvas);
     
     this.canvas.onmouseleave = (e) => {
-    console.log("Strum", this.number);
-    play();
-    this.force = 5;
+        console.log("Strum", this.number);
+        play(this.number);
+        this.force = 5;
     }
     
     this.ctx = this.canvas.getContext("2d");
@@ -68,7 +68,8 @@ const stringHeight = h / 10;
 
 var langStrings = new Array(nStrings);
 for (var i = 0; i < nStrings; i++) {
-    langStrings[i] = new LangString(stringHeight, w*0.5, i+1, lang);
+    // THIS IS A ZERO INDEX HOUSEHOLD
+    langStrings[i] = new LangString(stringHeight, w*0.5, i, lang);
 }
 
 function render() {
@@ -85,7 +86,7 @@ async function init()
     audioCtx = new AudioContext();
     
     // pass folder name of wasm file
-    factory = new StiffString(audioCtx, 'binary');
+    factory = new Langeleik(audioCtx, './jsdsp/');
     dspNode = await factory.load();
     dspNode.connect(audioCtx.destination);
 
@@ -93,12 +94,12 @@ async function init()
     console.log(dspNode.getParams());
 }
 
-async function play()
+async function play(i)
 {
     if (!audioCtx) await init();
     // press button down
-    dspNode.setParamValue('/StiffString/Play', true);
+    dspNode.setParamValue(`/Langeleik/ExciteString${i}`, true);
     
     // release button (need to shortly wait)
-    setTimeout(() => dspNode.setParamValue('/StiffString/Play', false), 50);
+    setTimeout(() => dspNode.setParamValue(`/Langeleik/ExciteString${i}`, false), 50);
 }
