@@ -31,16 +31,19 @@ constructor(height, width, number, parent) {
     this.a = 0;
     this.force = 0;
 
+
     this.canvas = document.createElement("canvas");
     this.canvas.id = "LangString-" + this.number;
     this.canvas.style.width = "inherit";
     this.canvas.style.height = this.height + "px";
     this.canvas.style.position = "relative";
     this.parent.appendChild(this.canvas);
-    
+
     this.canvas.onmouseleave = (e) => {
         console.log("Strum", this.number);
-        play(this.number);
+        var rect = e.target.getBoundingClientRect();
+        var pos = (e.clientX - rect.left) / rect.width;
+        play(this.number, pos);
         this.force = 5;
     }
     
@@ -68,7 +71,6 @@ const stringHeight = h / 10;
 
 var langStrings = new Array(nStrings);
 for (var i = 0; i < nStrings; i++) {
-    // THIS IS A ZERO INDEX HOUSEHOLD
     langStrings[i] = new LangString(stringHeight, w*0.5, i, lang);
 }
 
@@ -94,10 +96,11 @@ async function init()
     console.log(dspNode.getParams());
 }
 
-async function play(i)
+async function play(i, inputPoint)
 {
     if (!audioCtx) await init();
     // press button down
+    dspNode.setParamValue(`/Langeleik/InputPoint${i}`, inputPoint);
     dspNode.setParamValue(`/Langeleik/ExciteString${i}`, true);
     
     // release button (need to shortly wait)
