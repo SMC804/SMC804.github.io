@@ -1,6 +1,8 @@
+const nStrings = 8;
+
 let AudioContext = window.AudioContext || window.webkitAudioContext;
 let audioCtx;
-let dspNode;
+let stringNodes = new Array(nStrings);
 
 window.requestAnimFrame = (function() {
     return  window.requestAnimationFrame ||
@@ -18,7 +20,6 @@ var lang = document.getElementById("langeleik");
 const w = lang.clientWidth;
 const h = lang.clientHeight;
 
-const nStrings = 8;
 
 class LangString {
     constructor(height, width, number, parent) {
@@ -108,21 +109,24 @@ async function init()
     audioCtx = new AudioContext();
     
     // pass folder name of wasm file
-    factory = new Langeleik(audioCtx, './jsdsp/');
-    dspNode = await factory.load();
-    dspNode.connect(audioCtx.destination);
+    for (let i = 0; i < nStrings; i++) {
+        factory = new StiffString(audioCtx, './jsdsp/');
+        stringNodes[i] = await factory.load();
+        stringNodes[i].connect(audioCtx.destination);
+        //stringNodes[i].setParamValue("/StiffString/Radius", (i+1) * 1e-4);
+    }
 
     // description of the input parameters set in Faust (e.g. sliders, buttons etc)
-    console.log(dspNode.getParams());
+    console.log(stringNodes[0].getParams());
 }
 
 async function play(i, inputPoint)
 {
     if (!audioCtx) await init();
     // press button down
-    dspNode.setParamValue(`/Langeleik/InputPoint${i}`, inputPoint);
-    dspNode.setParamValue(`/Langeleik/ExciteString${i}`, true);
+    stringNodes[i].setParamValue("/StiffString/InputPoint", inputPoint);
+    stringNodes[i].setParamValue("/StiffString/Excite", true);
     
     // release button (need to shortly wait)
-    setTimeout(() => dspNode.setParamValue(`/Langeleik/ExciteString${i}`, false), 50);
+    setTimeout(() => stringNodes[i].setParamValue("/StiffString/Excite", false), 50);
 }
