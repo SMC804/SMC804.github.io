@@ -90,6 +90,7 @@ function buildLangeleik() {
     }
 
     render();
+    init();
 }
 
 function buildSplashScreen() {

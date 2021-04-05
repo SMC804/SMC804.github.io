@@ -34,7 +34,6 @@ class StiffStringProcessor extends AudioWorkletProcessor
 
         this.fret = 1;
 
-        this.playing = false;
         this.excite = 0;
     }
 
@@ -116,7 +115,7 @@ class StiffStringProcessor extends AudioWorkletProcessor
             this.currU = this.nextU;
             this.nextU = new Array(this.N+1).fill(0);
         }
-        return this.playing;
+        return true;
     }
 }
 
