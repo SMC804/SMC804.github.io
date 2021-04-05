@@ -25,29 +25,52 @@ class StiffStringProcessor extends AudioWorkletProcessor
         this.currU = new Array(this.N+1).fill(0);
         this.nextU = new Array(this.N+1).fill(0);
 
-        // excitation: hann window length 7 (N = 6)
-        for (let i = 3; i <= 9; i++) {
-            this.prevU[i] = 0.5 * (1 - Math.cos(2 * Math.PI * (i - 3) / 6));
-            this.currU[i] = this.prevU[i];
-        }
-
         var den = 1+this.sigma0*this.k;
         this.A = ((2-2*this.c**2*this.k**2/this.h**2-4*this.sigma1*this.k/this.h**2-6*this.kappa**2*this.k**2/this.h**4)/den);
         this.B = ((this.sigma0*this.k-1+4*this.sigma1*this.k/this.h**2)/den);
         this.C = ((this.c**2*this.k**2/this.h**2+2*this.sigma1*this.k/this.h**2+4*this.kappa**2*this.k**2/this.h**4)/den);
         this.D = ((-2)*this.sigma1*this.k/den/this.h**2);
         this.E = ((-(this.kappa**2))*this.k**2/den/this.h**4);
+
+        this.fret = 1;
+
+        this.playing = false;
+        this.excite = 0;
     }
 
     static get parameterDescriptors () {
         return [
             {
                 name: 'listeningpoint',
-                defaultValue: 0.3,
+                defaultValue: 0.4,
                 minValue: 0,
                 maxValue: 1,
                 automationRate: 'k-rate'
             },
+
+            {
+                name: 'excitationpoint',
+                defaultValue: 0.4,
+                minValue: 0,
+                maxValue: 1,
+                automationRate: 'k-rate'
+            },
+
+            {
+                name: 'excite',
+                defaultValue: 0,
+                minValue: 0,
+                maxValue: 1,
+                automationRate: 'k-rate'
+            },
+
+            {
+                name: 'fret',
+                defaultValue: 1,
+                minValue: 0,
+                maxValue: 1,
+                automationRate: 'k-rate'
+            }
         ];
     } 
 
@@ -56,10 +79,33 @@ class StiffStringProcessor extends AudioWorkletProcessor
         const output = outputs[0][0];
         
         let listeningpoint = Math.round(parameters['listeningpoint'][0] * this.N);
+        let excitationpoint = Math.round(parameters['excitationpoint'][0] * this.N);
+        let excite = parameters['excite'][0];
+
+        let N = Math.round(parameters['fret'][0] * this.N);
+
+        if (N != this.N)
+        {
+            this.prevU[N - 1] = 0;
+            this.prevU[N] = 0;
+            this.currU[N - 1] = 0;
+            this.currU[N] = 0;
+        }
+
+        if (excite != this.excite)
+        {
+            // excitation: hann window length 7 (N = 6)
+            for (let i = Math.max(2, excitationpoint-3); i <= Math.min(N-1, excitationpoint+3); i++) {
+                this.prevU[i] = 0.5 * (1 - Math.cos(2 * Math.PI * (i - 3) / 6));
+                this.currU[i] = this.prevU[i];
+            }
+
+            this.excite = excite;
+        }
 
         for (let i = 0; i < output.length; i++) 
         {
-            for (let l = 2; l < this.N - 1; l++)
+            for (let l = 2; l < N - 1; l++)
             {
                 this.nextU[l] = this.E*this.currU[l-2] + this.C*this.currU[l-1] + this.A*this.currU[l] + this.C*this.currU[l+1] + this.E*this.currU[l+2]
                                 + this.D*this.prevU[l-1] + this.B*this.prevU[l] + this.D*this.prevU[l+1];
@@ -70,7 +116,7 @@ class StiffStringProcessor extends AudioWorkletProcessor
             this.currU = this.nextU;
             this.nextU = new Array(this.N+1).fill(0);
         }
-        return true;
+        return this.playing;
     }
 }
 

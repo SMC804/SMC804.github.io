@@ -122,13 +122,16 @@ async function init()
         });
 
         constantNodes[i].connect(dspNodes[i]);
+        constantNodes[i].start();
         dspNodes[i].connect(audioCtx.destination);
     }
+
+    dspNodes[0].parameters.get('fret').value = 0.7;
 }
 
 async function play(i, inputPoint)
 {
     if (!audioCtx) await init();
-
-    constantNodes[i].start();
+    dspNodes[i].parameters.get('excitationpoint').value = inputPoint;
+    dspNodes[i].parameters.get('excite').value = 1 - dspNodes[i].parameters.get('excite').value;
 }
