@@ -72,7 +72,7 @@ class LangString {
     this.buildSplashScreen();
 
 function buildLangeleik() {
-    const stringHeight = h / 10;
+    const stringHeight = h / 20;
 
     var langStrings = new Array(nStrings);
     for (var i = 0; i < nStrings; i++) {
