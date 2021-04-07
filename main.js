@@ -2,7 +2,7 @@ let AudioContext = window.AudioContext || window.webkitAudioContext;
 let audioCtx;
 let dspNodes;
 let mergeChannelNode;
-let convolutionNode;
+let convolverNode;
 let splitChannelNode;
 
 window.requestAnimFrame = (function() {
@@ -115,12 +115,16 @@ async function init()
     await audioCtx.audioWorklet.addModule('stiffstring-processor.js');
 
     mergeChannelNode = audioCtx.createChannelMerger(8);
-    convolutionNode = audioCtx.createConvolver();
+    convolverNode = audioCtx.createConvolver();
+    // Load impulse response
+    let IR = await fetch("./IR.wav");
+    let IRbuffer = await IR.arrayBuffer();
+    convolverNode.buffer = await audioCtx.decodeAudioData(IRbuffer);
     splitChannelNode = audioCtx.createChannelSplitter(2);
 
     // let stringLengths = [0.85, 0.80, 0.75, 0.71, 0.66, 0.52, 0.57, 0.53];
     // let stringFrequencies = [110.0, 110.0, 138.59, 164.81, 220.0, 277.18, 329.63, 440.0];
-    let stringFrequencies = [220.0, 220.0, 277.18, 329.63, 220.0, 277.18, 329.63, 440.0];
+    let stringFrequencies = [440.0, 220.0, 277.18, 329.63, 220.0, 277.18, 329.63, 440.0];
     // let stringFrequencies = [220.0, 277.18, 329.63, 220.0, 277.18, 329.63, 440.0, 220.0];
 
     for (let i = 0; i < nStrings; i++) {
@@ -129,14 +133,15 @@ async function init()
                 fs: audioCtx.sampleRate,
                 length: 1,
                 frequency: stringFrequencies[i],
-                radius: (i+1) * 1.5e-4,
+                radius: (i+1) * 1.1e-4,
             }
         });
 
         dspNodes[i].connect(mergeChannelNode);
     }
     
-    mergeChannelNode.connect(splitChannelNode);
+    mergeChannelNode.connect(convolverNode);
+    convolverNode.connect(splitChannelNode);
     splitChannelNode.connect(audioCtx.destination);
 }
 
@@ -148,7 +153,7 @@ async function play(i, inputPoint)
     let buffer = strumBuffer.getChannelData(0);
     let point = Math.abs(Math.floor(128*inputPoint));
     // Let's do some Hann windowing for strumming
-    let hann = [0.25, 0.75, 1, 0.75, 0.25];
+    let hann = [0.0, 0.5, 1, 0.5, 0.0];
     let windowCounter = 0;
     for (var n = 0; n < 128; n++) {
         if (n >= point-2 && n <= point+2) {
@@ -165,7 +170,6 @@ async function play(i, inputPoint)
 
 function fretting(e, down) {
     // Diatonic major scale pythagorean tuning
-    console.log(e.code, down);
     switch (e.code) {
         case "KeyJ":
             if(down) {
