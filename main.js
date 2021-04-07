@@ -1,7 +1,9 @@
 let AudioContext = window.AudioContext || window.webkitAudioContext;
 let audioCtx;
 let dspNodes;
-let constantNodes;
+let mergeChannelNode;
+let convolutionNode;
+let splitChannelNode;
 
 window.requestAnimFrame = (function() {
     return  window.requestAnimationFrame ||
@@ -41,7 +43,6 @@ class LangString {
         this.parent.appendChild(this.canvas);
 
         this.canvas.onmouseleave = (e) => {
-            console.log("Strum", this.number);
             var rect = e.target.getBoundingClientRect();
             var pos = (e.clientX - rect.left) / rect.width;
             play(this.number, pos);
@@ -68,11 +69,7 @@ class LangString {
     }
 }
 
-// if (baseAudioContext.state === "running") {
-    // this.buildLangeleik();
-// } else {
     this.buildSplashScreen();
-// }
 
 function buildLangeleik() {
     const stringHeight = h / 10;
@@ -89,6 +86,7 @@ function buildLangeleik() {
         });
     }
 
+    init();
     render();
 }
 
@@ -109,11 +107,15 @@ async function init()
     audioCtx = new AudioContext();
     
     dspNodes = new Array(nStrings);
-    constantNodes = new Array(nStrings);
     await audioCtx.audioWorklet.addModule('stiffstring-processor.js');
 
+    mergeChannelNode = audioCtx.createChannelMerger(8);
+    convolutionNode = audioCtx.createConvolver();
+    splitChannelNode = audioCtx.createChannelSplitter(2);
+
     for (let i = 0; i < nStrings; i++) {
-        constantNodes[i] = audioCtx.createConstantSource();
+        console.log(i);
+      
         dspNodes[i] = new AudioWorkletNode(audioCtx, 'stiffstring-processor', {
             processorOptions: {
                 fs: audioCtx.sampleRate,
@@ -121,14 +123,24 @@ async function init()
             }
         });
 
-        constantNodes[i].connect(dspNodes[i]);
-        dspNodes[i].connect(audioCtx.destination);
+        dspNodes[i].connect(mergeChannelNode);
     }
+    
+    mergeChannelNode.connect(splitChannelNode);
+    splitChannelNode.connect(audioCtx.destination);
 }
 
 async function play(i, inputPoint)
 {
     if (!audioCtx) await init();
-
-    constantNodes[i].start();
+    let strumForceNode = audioCtx.createBufferSource();
+    let strumBuffer = audioCtx.createBuffer(1, 128, audioCtx.sampleRate);
+    let buffer = strumBuffer.getChannelData(0);
+    let point = Math.abs(Math.floor(128*inputPoint));
+    for (var n = 0; n < 128; n++) {
+        buffer[n] = (n === point) ? 0.1 : 0;
+    }
+    strumForceNode.buffer = strumBuffer;
+    strumForceNode.connect(dspNodes[i]);
+    strumForceNode.start(audioCtx.currentTime);
 }

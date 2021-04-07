@@ -13,8 +13,8 @@ class StiffStringProcessor extends AudioWorkletProcessor
         this.I = (Math.PI*this.radius**4)/4;
         this.Emod = 2.7e9;
         this.k = 1/options.processorOptions['fs'];
-        this.sigma0 = 0.01;
-        this.sigma1 = 0.005;
+        this.sigma0 = 0.05;
+        this.sigma1 = 0.05;
         this.kappa = Math.sqrt(this.Emod*this.I/this.rho/this.Area); 
         this.c = Math.sqrt(this.T/this.rho/this.Area);
         this.h = Math.sqrt((this.c**2*this.k**2+4*this.sigma1*this.k+Math.sqrt((this.c**2*this.k**2+4*this.sigma1*this.k)**2+16*this.kappa**2*this.k**2))/2);
@@ -25,18 +25,19 @@ class StiffStringProcessor extends AudioWorkletProcessor
         this.currU = new Array(this.N+1).fill(0);
         this.nextU = new Array(this.N+1).fill(0);
 
-        // excitation: hann window length 7 (N = 6)
-        for (let i = 3; i <= 9; i++) {
-            this.prevU[i] = 0.5 * (1 - Math.cos(2 * Math.PI * (i - 3) / 6));
-            this.currU[i] = this.prevU[i];
-        }
+        this.printVal = true;
 
-        var den = 1+this.sigma0*this.k;
-        this.A = ((2-2*this.c**2*this.k**2/this.h**2-4*this.sigma1*this.k/this.h**2-6*this.kappa**2*this.k**2/this.h**4)/den);
-        this.B = ((this.sigma0*this.k-1+4*this.sigma1*this.k/this.h**2)/den);
-        this.C = ((this.c**2*this.k**2/this.h**2+2*this.sigma1*this.k/this.h**2+4*this.kappa**2*this.k**2/this.h**4)/den);
-        this.D = ((-2)*this.sigma1*this.k/den/this.h**2);
-        this.E = ((-(this.kappa**2))*this.k**2/den/this.h**4);
+        // var den = 1+this.sigma0*this.k;
+        // this.A = ((2-2*this.c**2*this.k**2/this.h**2-4*this.sigma1*this.k/this.h**2-6*this.kappa**2*this.k**2/this.h**4)/den);
+        // this.B = ((this.sigma0*this.k-1+4*this.sigma1*this.k/this.h**2)/den);
+        // this.C = ((this.c**2*this.k**2/this.h**2+2*this.sigma1*this.k/this.h**2+4*this.kappa**2*this.k**2/this.h**4)/den);
+        // this.D = ((-2)*this.sigma1*this.k/den/this.h**2);
+        // this.E = ((-(this.kappa**2))*this.k**2/den/this.h**4);
+        this.E = (-1.0*this.k**2.0*this.kappa**2)/(this.h**4);
+        this.C = (this.k**2*this.c**2)/(this.h**2)+(4.0*this.k**2*this.kappa**2)/(this.h**4)+(2.0*this.k*this.sigma1)/(this.h**2);
+        this.A = 2.0-(2.0*this.k**2*this.c**2)/(this.h**2)-(6.0*this.k**2*this.kappa**2)/(this.h**4) - 2.0*this.k*this.sigma0-(4*this.k*this.sigma1)/(this.h**2);
+        this.B = -1.0+2.0*this.k*this.sigma0+(4*this.k*this.sigma1)/(this.h**2);
+        this.D = (-2.0*this.k*this.sigma1)/(this.h**2); 
     }
 
     static get parameterDescriptors () {
@@ -47,16 +48,36 @@ class StiffStringProcessor extends AudioWorkletProcessor
                 minValue: 0,
                 maxValue: 1,
                 automationRate: 'k-rate'
-            },
+            }
         ];
     } 
+
+
+
 
     process (inputs, outputs, parameters)
     {
         const output = outputs[0][0];
-        
-        let listeningpoint = Math.round(parameters['listeningpoint'][0] * this.N);
+        const input = inputs[0][0];
 
+        let strum = new Array(this.N+1).fill(0);
+        if (input !== undefined) {
+            let stepSize = input.length / this.N;
+            let step = 0;
+            for (let n = 1; n < this.N; n++) {
+                step = Math.floor(n*stepSize);
+                // Mean input samples for step size
+                let mean = input[step];
+                for (let m = 0; m < Math.floor(stepSize); m++) {
+                    mean += input[step-m];
+                }
+                strum[n] = mean;
+            }
+            this.currU = strum;
+        }
+
+
+        let listeningpoint = Math.round(parameters['listeningpoint'][0] * this.N);
         for (let i = 0; i < output.length; i++) 
         {
             for (let l = 2; l < this.N - 1; l++)
