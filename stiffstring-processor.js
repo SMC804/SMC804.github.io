@@ -5,18 +5,19 @@ class StiffStringProcessor extends AudioWorkletProcessor
     {
         super(options);
 
-        this.L = 1;
-        this.T = 150;
+        this.L = options.processorOptions.length;
+        // this.T = 100;
         this.radius = options.processorOptions.radius;
         this.rho = 1140;
         this.Area = Math.PI*this.radius**2;
         this.I = (Math.PI*this.radius**4)/4;
         this.Emod = 2.7e9;
         this.k = 1/options.processorOptions['fs'];
-        this.sigma0 = 0.01;
+        this.sigma0 = 0.05;
         this.sigma1 = 0.005;
         this.kappa = Math.sqrt(this.Emod*this.I/this.rho/this.Area); 
-        this.c = Math.sqrt(this.T/this.rho/this.Area);
+        // this.c = Math.sqrt(this.T/this.rho/this.Area);
+        this.c = options.processorOptions.frequency;
         this.h = Math.sqrt((this.c**2*this.k**2+4*this.sigma1*this.k+Math.sqrt((this.c**2*this.k**2+4*this.sigma1*this.k)**2+16*this.kappa**2*this.k**2))/2);
         this.N = Math.floor(this.L/this.h);
         this.h = this.L/this.N;
@@ -59,7 +60,6 @@ class StiffStringProcessor extends AudioWorkletProcessor
 
         let strum = new Array(this.N+1).fill(0);
         if (input !== undefined) {
-            console.log(Math.max(...input));
             let stepSize = input.length / this.N;
             let step = 0;
             for (let n = 1; n < this.N; n++) {
@@ -70,6 +70,7 @@ class StiffStringProcessor extends AudioWorkletProcessor
                     mean += input[step-m];
                 }
                 this.currU[n] += mean;
+                this.prevU[n] += mean;
             }
         }
 

@@ -60,8 +60,8 @@ class LangString {
         this.ctx.beginPath();
         this.ctx.moveTo(this.x, this.y);
         this.ctx.bezierCurveTo(
-        this.x, this.y + Math.sin(this.a) * this.force,
-        this.x + this.width, this.y + Math.sin(this.a) * this.force,
+        this.x, this.y + Math.sin(this.a) * this.force * 2,
+        this.x + this.width, this.y + Math.sin(this.a) * this.force * 2,
         this.x + this.width, this.y);
         this.ctx.stroke();
         this.force *= 0.99;
@@ -113,13 +113,16 @@ async function init()
     convolutionNode = audioCtx.createConvolver();
     splitChannelNode = audioCtx.createChannelSplitter(2);
 
+    let stringLengths = [0.85, 0.80, 0.75, 0.71, 0.66, 0.52, 0.57, 0.53];
+    let stringFrequencies = [110.0, 110.0, 138.59, 164.81, 220.0, 277.18, 329.63, 440.0];
+
     for (let i = 0; i < nStrings; i++) {
-        console.log(i);
-      
         dspNodes[i] = new AudioWorkletNode(audioCtx, 'stiffstring-processor', {
             processorOptions: {
                 fs: audioCtx.sampleRate,
-                radius: (i+1) * 1.1e-4,
+                length: stringLengths[1],
+                frequency: stringFrequencies[i],
+                radius: (i+1) * 1.5e-4,
             }
         });
 
@@ -137,8 +140,16 @@ async function play(i, inputPoint)
     let strumBuffer = audioCtx.createBuffer(1, 128, audioCtx.sampleRate);
     let buffer = strumBuffer.getChannelData(0);
     let point = Math.abs(Math.floor(128*inputPoint));
+    // Let's do some Hann windowing for strumming
+    let hann = [0.25, 0.75, 1, 0.75, 0.25];
+    let windowCounter = 0;
     for (var n = 0; n < 128; n++) {
-        buffer[n] = (n === point) ? 0.1 : 0;
+        if (n >= point-2 && n <= point+2) {
+            buffer[n] = hann[windowCounter]*0.5;
+            windowCounter++;
+        } else {
+            buffer[n] = 0;
+        }
     }
     strumForceNode.buffer = strumBuffer;
     strumForceNode.connect(dspNodes[i]);
