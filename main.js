@@ -17,11 +17,16 @@ window.requestAnimFrame = (function() {
   })();
   
 var lang = document.getElementById("langeleik");
+document.body.addEventListener('keydown', function(e) {fretting(e, true)});
+document.body.addEventListener('keyup', function(e) {fretting(e, false)});
 
 const w = lang.clientWidth;
 const h = lang.clientHeight;
 
 const nStrings = 8;
+
+let fretsDown = [false, false, false, false, false, false, false];
+let fretTuning = [0.1111, 0.2099, 0.25, 0.3333, 0.4074, 0.4733, 0.5];
 
 class LangString {
     constructor(height, width, number, parent) {
@@ -113,14 +118,16 @@ async function init()
     convolutionNode = audioCtx.createConvolver();
     splitChannelNode = audioCtx.createChannelSplitter(2);
 
-    let stringLengths = [0.85, 0.80, 0.75, 0.71, 0.66, 0.52, 0.57, 0.53];
-    let stringFrequencies = [110.0, 110.0, 138.59, 164.81, 220.0, 277.18, 329.63, 440.0];
+    // let stringLengths = [0.85, 0.80, 0.75, 0.71, 0.66, 0.52, 0.57, 0.53];
+    // let stringFrequencies = [110.0, 110.0, 138.59, 164.81, 220.0, 277.18, 329.63, 440.0];
+    let stringFrequencies = [220.0, 220.0, 277.18, 329.63, 220.0, 277.18, 329.63, 440.0];
+    // let stringFrequencies = [220.0, 277.18, 329.63, 220.0, 277.18, 329.63, 440.0, 220.0];
 
     for (let i = 0; i < nStrings; i++) {
         dspNodes[i] = new AudioWorkletNode(audioCtx, 'stiffstring-processor', {
             processorOptions: {
                 fs: audioCtx.sampleRate,
-                length: stringLengths[1],
+                length: 1,
                 frequency: stringFrequencies[i],
                 radius: (i+1) * 1.5e-4,
             }
@@ -154,4 +161,72 @@ async function play(i, inputPoint)
     strumForceNode.buffer = strumBuffer;
     strumForceNode.connect(dspNodes[i]);
     strumForceNode.start(audioCtx.currentTime);
+}
+
+function fretting(e, down) {
+    // Diatonic major scale pythagorean tuning
+    console.log(e.code, down);
+    switch (e.code) {
+        case "KeyJ":
+            if(down) {
+                dspNodes[0].parameters.get('frettingpoint').setValueAtTime(fretTuning[6], audioCtx.currentTime);
+                fretsDown[6] = true;
+            } else {
+                fretsDown[6] = false;
+            }
+            break;
+        case "KeyH":
+            if(down) {
+                dspNodes[0].parameters.get('frettingpoint').setValueAtTime(fretTuning[5], audioCtx.currentTime);
+                fretsDown[5] = true;
+            } else {
+                fretsDown[5] = false;
+            }
+            break;
+        case "KeyG":
+            if(down) {
+                dspNodes[0].parameters.get('frettingpoint').setValueAtTime(fretTuning[4], audioCtx.currentTime);
+                fretsDown[4] = true;
+            } else {
+                fretsDown[4] = false;
+            }
+            break;
+        case "KeyF":
+            if(down) {
+                dspNodes[0].parameters.get('frettingpoint').setValueAtTime(fretTuning[3], audioCtx.currentTime);
+                fretsDown[3] = true;
+            } else {
+                fretsDown[3] = false;
+            }
+            break;
+        case "KeyD":
+            if(down) {
+                dspNodes[0].parameters.get('frettingpoint').setValueAtTime(fretTuning[2], audioCtx.currentTime);
+                fretsDown[2] = true;
+            } else {
+                fretsDown[2] = false;
+            }
+            break;
+        case "KeyS":
+            if(down) {
+                dspNodes[0].parameters.get('frettingpoint').setValueAtTime(fretTuning[1], audioCtx.currentTime);
+                fretsDown[1] = true;
+            } else {
+                fretsDown[1] = false;
+            }
+            break;
+        case "KeyA":
+            if(down) {
+                dspNodes[0].parameters.get('frettingpoint').setValueAtTime(fretTuning[0], audioCtx.currentTime);
+                fretsDown[0] = true;
+            } else {
+                fretsDown[0] = false;
+            }
+            break;
+        default:
+            break;
+    }   
+    if (fretsDown.every((val) => val === false)) {
+        dspNodes[0].parameters.get('frettingpoint').setValueAtTime(0.0, audioCtx.currentTime);
+    }
 }

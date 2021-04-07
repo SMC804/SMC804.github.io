@@ -13,7 +13,7 @@ class StiffStringProcessor extends AudioWorkletProcessor
         this.I = (Math.PI*this.radius**4)/4;
         this.Emod = 2.7e9;
         this.k = 1/options.processorOptions['fs'];
-        this.sigma0 = 0.05;
+        this.sigma0 = 0.01;
         this.sigma1 = 0.005;
         this.kappa = Math.sqrt(this.Emod*this.I/this.rho/this.Area); 
         // this.c = Math.sqrt(this.T/this.rho/this.Area);
@@ -45,7 +45,14 @@ class StiffStringProcessor extends AudioWorkletProcessor
         return [
             {
                 name: 'listeningpoint',
-                defaultValue: 0.3,
+                defaultValue: 0.7,
+                minValue: 0,
+                maxValue: 1,
+                automationRate: 'k-rate'
+            },
+            {   
+                name: 'frettingpoint',
+                defaultValue: 0,
                 minValue: 0,
                 maxValue: 1,
                 automationRate: 'k-rate'
@@ -76,8 +83,10 @@ class StiffStringProcessor extends AudioWorkletProcessor
 
 
         let listeningpoint = Math.round(parameters['listeningpoint'][0] * this.N);
+        let frettingpoint = Math.round(parameters['frettingpoint'][0] * this.N);
         for (let i = 0; i < output.length; i++) 
         {
+            this.currU[frettingpoint] = 0.0001;
             for (let l = 2; l < this.N - 1; l++)
             {
                 this.nextU[l] = this.E*this.currU[l-2] + this.C*this.currU[l-1] + this.A*this.currU[l] + this.C*this.currU[l+1] + this.E*this.currU[l+2]
