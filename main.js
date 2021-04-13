@@ -25,8 +25,8 @@ const h = lang.clientHeight;
 
 const nStrings = 8;
 
-let fretsDown = [false, false, false, false, false, false, false];
-let fretTuning = [0.1111, 0.2099, 0.25, 0.3333, 0.4074, 0.4733, 0.5];
+let fretsDown = [false, false, false, false, false, false, false, false, false, false, false, false, false, false];
+let fretTuning = [0.1111, 0.2099, 0.25, 0.3333, 0.4074, 0.4733, 0.5, 0.1111, 0.2099, 0.25, 0.3333, 0.4074, 0.4733, 0.5];
 
 class LangString {
     constructor(height, width, number, parent) {
@@ -80,7 +80,7 @@ function buildLangeleik() {
     const stringHeight = h / 20;
 
     var langStrings = new Array(nStrings);
-    for (var i = 0; i < nStrings; i++) {
+    for (var i = nStrings-1; i >= 0; i--) {
         langStrings[i] = new LangString(stringHeight, w*0.5, i, lang);
     }
     
@@ -122,10 +122,9 @@ async function init()
     convolverNode.buffer = await audioCtx.decodeAudioData(IRbuffer);
     splitChannelNode = audioCtx.createChannelSplitter(2);
 
-    // let stringLengths = [0.85, 0.80, 0.75, 0.71, 0.66, 0.52, 0.57, 0.53];
-    // let stringFrequencies = [110.0, 110.0, 138.59, 164.81, 220.0, 277.18, 329.63, 440.0];
-    let stringFrequencies = [440.0, 220.0, 277.18, 329.63, 220.0, 277.18, 329.63, 440.0];
-    // let stringFrequencies = [220.0, 277.18, 329.63, 220.0, 277.18, 329.63, 440.0, 220.0];
+    let stringLengths = [0.85, 0.80, 0.75, 0.71, 0.66, 0.52, 0.57, 0.53];
+    let stringFrequencies = [440.0, 440.0, 440.0, 440.0, 659.25, 554.37, 659.25, 554.37]; // Tuning from book +1 octave
+    // let stringFrequencies = [220.0, 220.0, 220.0, 220.0, 329.63, 220.0, 277.18, 329.63]; // Tuning from book +0 octave
 
     for (let i = 0; i < nStrings; i++) {
         dspNodes[i] = new AudioWorkletNode(audioCtx, 'stiffstring-processor', {
@@ -133,7 +132,7 @@ async function init()
                 fs: audioCtx.sampleRate,
                 length: 1,
                 frequency: stringFrequencies[i],
-                radius: (i+1) * 1.1e-4,
+                radius: (i+1) * 2.2e-4,
             }
         });
 
@@ -157,7 +156,7 @@ async function play(i, inputPoint)
     let windowCounter = 0;
     for (var n = 0; n < 128; n++) {
         if (n >= point-2 && n <= point+2) {
-            buffer[n] = hann[windowCounter]*0.5;
+            buffer[n] = hann[windowCounter];
             windowCounter++;
         } else {
             buffer[n] = 0;
@@ -170,67 +169,57 @@ async function play(i, inputPoint)
 
 function fretting(e, down) {
     // Diatonic major scale pythagorean tuning
-    switch (e.code) {
+        switch (e.code) {
+        case "KeyM":
+                fretsDown[13] = down;
+            break;
+        case "KeyN":
+                fretsDown[12] = down;
+            break;
+        case "KeyB":
+                fretsDown[11] = down;
+            break;
+        case "KeyV":
+                fretsDown[10] = down;
+            break;
+        case "KeyC":
+                fretsDown[9] = down;
+            break;
+        case "KeyX":
+                fretsDown[8] = down;
+            break;
+        case "KeyZ":
+                fretsDown[7] = down;
+            break;
         case "KeyJ":
-            if(down) {
-                dspNodes[0].parameters.get('frettingpoint').setValueAtTime(fretTuning[6], audioCtx.currentTime);
-                fretsDown[6] = true;
-            } else {
-                fretsDown[6] = false;
-            }
+                fretsDown[6] = down;
             break;
         case "KeyH":
-            if(down) {
-                dspNodes[0].parameters.get('frettingpoint').setValueAtTime(fretTuning[5], audioCtx.currentTime);
-                fretsDown[5] = true;
-            } else {
-                fretsDown[5] = false;
-            }
+                fretsDown[5] = down;
             break;
         case "KeyG":
-            if(down) {
-                dspNodes[0].parameters.get('frettingpoint').setValueAtTime(fretTuning[4], audioCtx.currentTime);
-                fretsDown[4] = true;
-            } else {
-                fretsDown[4] = false;
-            }
+                fretsDown[4] = down;
             break;
         case "KeyF":
-            if(down) {
-                dspNodes[0].parameters.get('frettingpoint').setValueAtTime(fretTuning[3], audioCtx.currentTime);
-                fretsDown[3] = true;
-            } else {
-                fretsDown[3] = false;
-            }
+                fretsDown[3] = down;
             break;
         case "KeyD":
-            if(down) {
-                dspNodes[0].parameters.get('frettingpoint').setValueAtTime(fretTuning[2], audioCtx.currentTime);
-                fretsDown[2] = true;
-            } else {
-                fretsDown[2] = false;
-            }
+                fretsDown[2] = down;
             break;
         case "KeyS":
-            if(down) {
-                dspNodes[0].parameters.get('frettingpoint').setValueAtTime(fretTuning[1], audioCtx.currentTime);
-                fretsDown[1] = true;
-            } else {
-                fretsDown[1] = false;
-            }
+                fretsDown[1] = down;
             break;
         case "KeyA":
-            if(down) {
-                dspNodes[0].parameters.get('frettingpoint').setValueAtTime(fretTuning[0], audioCtx.currentTime);
-                fretsDown[0] = true;
-            } else {
-                fretsDown[0] = false;
-            }
+                fretsDown[0] = down;
             break;
         default:
             break;
     }   
-    if (fretsDown.every((val) => val === false)) {
+    let fret = fretsDown.lastIndexOf(true);
+    if (fret >= 0) {
+        dspNodes[0].parameters.get('frettingpoint').setValueAtTime(fretTuning[fret], audioCtx.currentTime);
+    }
+    else {
         dspNodes[0].parameters.get('frettingpoint').setValueAtTime(0.0, audioCtx.currentTime);
     }
 }
