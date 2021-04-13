@@ -13,7 +13,7 @@ class StiffStringProcessor extends AudioWorkletProcessor
         this.I = (Math.PI*this.radius**4)/4;
         this.Emod = 2.7e9;
         this.k = 1/options.processorOptions['fs'];
-        this.sigma0 = 0.01;
+        this.sigma0 = 2;
         this.sigma1 = 0.005;
         this.kappa = Math.sqrt(this.Emod*this.I/this.rho/this.Area); 
         // this.c = Math.sqrt(this.T/this.rho/this.Area);
