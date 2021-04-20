@@ -83,10 +83,20 @@ class StiffStringProcessor extends AudioWorkletProcessor
 
 
         let listeningpoint = Math.round(parameters['listeningpoint'][0] * this.N);
-        let frettingpoint = Math.round(parameters['frettingpoint'][0] * this.N);
+        let frettingpoint = Math.round(parameters['frettingpoint'][0] * (this.N - 1)) + 1;
         for (let i = 0; i < output.length; i++) 
         {
-            this.currU[frettingpoint] = 0.0001;
+            // simply supported boundary condition at the "bridge"
+            this.currU[this.N] = -this.currU[this.N - 2];
+            this.currU[frettingpoint] = 0;
+
+            if (frettingpoint == 1) {
+                // simply supported at the "nut"
+                this.currU[frettingpoint - 1] = -this.currU[frettingpoint + 1];
+            } else {
+                // clamped when fretted, otherwise repeated fretting causes instability
+                this.currU[frettingpoint - 1] = 0;
+            }
             for (let l = 2; l < this.N - 1; l++)
             {
                 this.nextU[l] = this.E*this.currU[l-2] + this.C*this.currU[l-1] + this.A*this.currU[l] + this.C*this.currU[l+1] + this.E*this.currU[l+2]
@@ -96,6 +106,7 @@ class StiffStringProcessor extends AudioWorkletProcessor
             output[i] = this.nextU[listeningpoint];
             this.prevU = this.currU;
             this.currU = this.nextU;
+
             this.nextU = new Array(this.N+1).fill(0);
         }
         return true;
