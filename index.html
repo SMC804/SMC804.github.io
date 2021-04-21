@@ -8,8 +8,27 @@
     <title>Langeleik</title>
 </head>
 <body>
-    <div style="width:80vw; height: 50vh; padding: 10%" id="langeleik"></div>
-    <script src="main.js" defer></script>
-    <!-- <button onclick="stop()">stop</button> -->
+    <div id="langeleik">
+        <canvas id=langeleikBody></canvas>
+        <button class="playbutton" id="playbutton">Play the Langeleik</button>
+    </div>
+    <div class="footer">
+        <div class="controls">
+            <input type="button" checked id="instructionsButton" value="Instructions">
+        </div>
+        <div class="controls">
+            Sound on
+            <input type="checkbox" checked id="soundCheckbox">
+        </div>
+        <div class="controls">
+            Volume
+            <input type="range" min="0" max="100" value="80" id="gainSlider">
+        </div>
+        <div class="controls">
+            Hold down mousebutton to strum
+            <input type="checkbox" id="mousedownCheckbox">
+        </div>
+    </div>
+    <script src="main.js"></script>
 </body>
 </html>
