@@ -69,9 +69,9 @@ fretinterpol = fretinterpol / h;
 fretheight = -0.0003 * ones(nFrets, 1);
 
 fingeridx = 55;
-fingerdisp = -0.0005;
+fingerdisp = -0.00201;
 
-fingerK = 1e10;
+fingerK = 1e8;
 beta = 1;
 
 etaNext = zeros(nFrets, 1);
@@ -105,14 +105,16 @@ for n = 1:fs*s
     etaFNext = uNext(fingeridx) - fingerdisp;
     etaFNext = 0.5 * (etaFNext + abs(etaFNext));
     
-    fingerForce = (fingerK * k^2 / (alpha + 1)) * ((etaFNext^(alpha + 1) - etaFPrev^(alpha+1)) / (etaFNext - etaFPrev) / rho / den);
+    fingerForce = (fingerK / (alpha + 1)) * ((etaFNext^(alpha + 1) - etaFPrev^(alpha+1)) / (etaFNext - etaFPrev));
+    
+    fingerForce = fingerForce + ((etaFNext - etaFPrev) / (2*k))^2 * fingerK * etaF^alpha;
     if ~isfinite(fingerForce)
         fingerForce = 0;
     end
     
     uNext = uNext + fretinterpol' * fretForce;
     
-    uNext(fingeridx) = uNext(fingeridx) - fingerForce;
+    uNext(fingeridx) = uNext(fingeridx) - k^2 * fingerForce  / rho / den;
     
     etaPrev = eta;
     eta = etaNext;
@@ -124,7 +126,7 @@ for n = 1:fs*s
     u = uNext;
     %plot(uNext);
     %hold on;
-    %ylim([-2e-3, 2e-3]);
+    %ylim([-3e-3, 3e-3]);
     %plot(fretposmeter/h+2, fretheight, 'r*');
     %hold off;
     %frame = getframe(gcf);
