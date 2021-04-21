@@ -30,10 +30,10 @@ u = zeros(N+3,1);
 uPrev = zeros(N+3,1);
 
 
-excdursec = 0.005;
+excdursec = 0.008;
 excdursamp = round(excdursec * fs);
 excidx = (0:excdursamp-1)'/excdursamp;
-excforce = 1;
+excforce = 0.3;
 
 excvec = (excforce/2) * (1 - cos(pi * excidx));
 excvec = excvec * k^2 / rho / h / den;
@@ -66,8 +66,13 @@ for i=1:nFrets
 end
 
 fretinterpol = fretinterpol / h;
-fretheight = -0.0005 * ones(nFrets, 1);
+fretheight = -0.0003 * ones(nFrets, 1);
 
+fingeridx = 55;
+fingerdisp = -0.0005;
+
+fingerK = 1e10;
+beta = 1;
 
 etaNext = zeros(nFrets, 1);
 eta = zeros(nFrets, 1);
@@ -75,6 +80,10 @@ etaPrev = zeros(nFrets, 1);
 %v = VideoWriter('slap.avi');
 %v.FrameRate = 120;
 %open(v);
+
+etaF = -fingerdisp;
+etaFNext = 0;
+etaFPrev = -fingerdisp;
 
 for n = 1:fs*s
     uNext(range) = E*u(range-2) + C*u(range-1) +A*u(range) + C*u(range+1) + E*u(range+2) + D*uPrev(range-1) + B*uPrev(range) + D*uPrev(range+1);
@@ -92,22 +101,36 @@ for n = 1:fs*s
     fretForce = (fretK * k^2 / (alpha + 1)) * ((etaNext.^(alpha + 1) - etaPrev.^(alpha + 1)) ./ (etaNext - etaPrev) / rho / den);
     fretForce(~isfinite(fretForce)) = 0;
     
+    % remember the 1/h and h stuff when interpolating
+    etaFNext = uNext(fingeridx) - fingerdisp;
+    etaFNext = 0.5 * (etaFNext + abs(etaFNext));
+    
+    fingerForce = (fingerK * k^2 / (alpha + 1)) * ((etaFNext^(alpha + 1) - etaFPrev^(alpha+1)) / (etaFNext - etaFPrev) / rho / den);
+    if ~isfinite(fingerForce)
+        fingerForce = 0;
+    end
+    
     uNext = uNext + fretinterpol' * fretForce;
+    
+    uNext(fingeridx) = uNext(fingeridx) - fingerForce;
     
     etaPrev = eta;
     eta = etaNext;
     
+    etaFPrev = etaF;
+    etaF = etaFNext;
+    
     uPrev = u;
     u = uNext;
-    plot(uNext);
-    hold on;
-    ylim([-2e-3, 2e-3]);
-    plot(fretposmeter/h+2, fretheight, 'r*');
-    hold off;
+    %plot(uNext);
+    %hold on;
+    %ylim([-2e-3, 2e-3]);
+    %plot(fretposmeter/h+2, fretheight, 'r*');
+    %hold off;
     %frame = getframe(gcf);
     %writeVideo(v, frame);
-    drawnow;
-    out(n) = uPrev(50);
+    %drawnow;
+    out(n) = uPrev(100);
 end
 %close(v);
 plot(out);
