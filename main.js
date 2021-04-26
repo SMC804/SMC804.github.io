@@ -28,8 +28,10 @@ document.body.addEventListener('keyup', e => {fretting(e, false)});
 document.body.addEventListener('mousedown', e => {mouseIsDown = true});
 document.body.addEventListener('mouseup', e => {mouseIsDown = false});
 
-const w = lang.clientWidth;
-const h = lang.clientHeight;
+window.onload = resizeCanvas;
+window.onresize = resizeCanvas;
+
+var stringHeight;
 
 const nStrings = 8;
 
@@ -85,13 +87,16 @@ class LangString {
 
 this.buildSplashScreen();
 
-function resize() {
-    console.log("Resizing");
+function resizeCanvas() {
+    var canvas = document.getElementById("langeleikBody");
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
 }
 
 function buildLangeleik() {
 
-    const stringHeight = h / 20;
+    var canvas = document.getElementById("langeleikBody");
+    stringHeight = canvas.clientHeight / 20;
 
     var langStrings = new Array(nStrings);
     var stringDiv = document.createElement("div");
@@ -100,8 +105,31 @@ function buildLangeleik() {
     stringDiv.style.paddingTop = 4*stringHeight + "px";
     lang.appendChild(stringDiv);
 
+    // Inital stuff if we want to draw the langeleik
+    // // var ctx = canvas.getContext("2d");
+    // // var gradient = ctx.createLinearGradient(0,0,200,0);
+    // // gradient.addColorStop(0, "#964B00");
+    // // gradient.addColorStop(1, "#873C00");
+    // // ctx.fillStyle = gradient;
+    // // var cw = canvas.width;
+    // // var ch = canvas.height;
+    // // ctx.beginPath();
+    // // ctx.moveTo(0,0.1*ch);
+    // // ctx.arcTo(0.2*cw, 0.05*ch, 0.25*cw, 0, 0);
+    // // ctx.arcTo(0.35*cw, 0.05*ch, 0.50*cw, 0, 0);
+    // // ctx.arcTo(0.45*cw, 0.10*ch, 0.75*cw, 0.2*ch, 0);
+    // // ctx.lineTo(cw, 0.2*ch);
+    // // ctx.lineTo(cw, 0.8*ch);
+    // // ctx.lineTo(0.75*cw, 0.8*ch);
+    // // ctx.lineTo(0.50*cw, ch);
+    // // ctx.lineTo(0.25*cw, ch);
+    // // ctx.lineTo(0.0, 0.9*ch);
+    // // ctx.lineTo(0,0);
+    // // ctx.fill();
+    // // ctx.stroke();
+
     for (var i = nStrings-1; i >= 0; i--) {
-        langStrings[i] = new LangString(stringHeight, w, i, stringDiv);
+        langStrings[i] = new LangString(stringHeight, canvas.clientWidth, i, stringDiv);
     }
     
     function render() {
@@ -144,6 +172,23 @@ function buildSplashScreen() {
     }
 }
 
+function drawFrets() 
+{
+    var canvas = document.getElementById("langeleikBody");
+    var ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    fretsDown.forEach((down, idx) => {
+        if(down) {
+            var fretPosX = canvas.width * fretTuning[idx];
+            ctx.beginPath();
+            ctx.arc(fretPosX, (12*stringHeight)+10, stringHeight, 0, 2 * Math.PI);
+            ctx.fillStyle = "rgba(128,128,128, 0.3)";
+            ctx.strokeStyle = "black";
+            ctx.stroke();
+            ctx.fill();
+        }
+    });
+}
 
 async function init()
 {
@@ -266,4 +311,5 @@ function fretting(e, down) {
     else {
         dspNodes[0].parameters.get('frettingpoint').setValueAtTime(0.0, audioCtx.currentTime);
     }
+    drawFrets();
 }
