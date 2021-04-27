@@ -4,6 +4,12 @@ let dspNodes;
 let mergeChannelNode;
 let convolverNode;
 let splitChannelNode;
+let gainNode;
+let audioOnNode;
+
+let gain = 0.80;
+let mousedownToStrum = false;
+let mouseIsDown = false;
 
 window.requestAnimFrame = (function() {
     return  window.requestAnimationFrame ||
@@ -17,8 +23,10 @@ window.requestAnimFrame = (function() {
   })();
   
 var lang = document.getElementById("langeleik");
-document.body.addEventListener('keydown', function(e) {fretting(e, true)});
-document.body.addEventListener('keyup', function(e) {fretting(e, false)});
+document.body.addEventListener('keydown', e => {fretting(e, true)});
+document.body.addEventListener('keyup', e => {fretting(e, false)});
+document.body.addEventListener('mousedown', e => {mouseIsDown = true});
+document.body.addEventListener('mouseup', e => {mouseIsDown = false});
 
 const w = lang.clientWidth;
 const h = lang.clientHeight;
@@ -42,16 +50,17 @@ class LangString {
 
         this.canvas = document.createElement("canvas");
         this.canvas.id = "LangString-" + this.number;
-        this.canvas.style.width = "inherit";
+        this.canvas.className = "LangString";
         this.canvas.style.height = this.height + "px";
-        this.canvas.style.position = "relative";
         this.parent.appendChild(this.canvas);
 
         this.canvas.onmouseleave = (e) => {
-            var rect = e.target.getBoundingClientRect();
-            var pos = (e.clientX - rect.left) / rect.width;
-            play(this.number, pos);
-            this.force = 5;
+            if (!(mousedownToStrum && !mouseIsDown)) {
+                var rect = e.target.getBoundingClientRect();
+                var pos = (e.clientX - rect.left) / rect.width;
+                play(this.number, pos);
+                this.force = 5;
+            }
         }
         
         this.ctx = this.canvas.getContext("2d");
@@ -61,7 +70,7 @@ class LangString {
     render() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.ctx.strokeStyle = "#000000";
-        this.ctx.lineWidth = 2;
+        this.ctx.lineWidth = 4;
         this.ctx.beginPath();
         this.ctx.moveTo(this.x, this.y);
         this.ctx.bezierCurveTo(
@@ -74,14 +83,25 @@ class LangString {
     }
 }
 
-    this.buildSplashScreen();
+this.buildSplashScreen();
+
+function resize() {
+    console.log("Resizing");
+}
 
 function buildLangeleik() {
+
     const stringHeight = h / 20;
 
     var langStrings = new Array(nStrings);
+    var stringDiv = document.createElement("div");
+    stringDiv.id = "StringDiv";
+    stringDiv.style.height = 8*stringHeight + "px";
+    stringDiv.style.paddingTop = 4*stringHeight + "px";
+    lang.appendChild(stringDiv);
+
     for (var i = nStrings-1; i >= 0; i--) {
-        langStrings[i] = new LangString(stringHeight, w*0.5, i, lang);
+        langStrings[i] = new LangString(stringHeight, w, i, stringDiv);
     }
     
     function render() {
@@ -96,13 +116,31 @@ function buildLangeleik() {
 }
 
 function buildSplashScreen() {
-    var button = document.createElement("button");
-    button.innerHTML = "Play the Langeleik";
-    button.className = "playbutton";
-    this.lang.appendChild(button);
+    var button = document.getElementById("playbutton");
     button.onclick = () => {
         this.buildLangeleik();
         this.lang.removeChild(button);
+    }
+    var instructionsButton = document.getElementById("instructionsButton");
+    instructionsButton.onclick = () => {
+        console.log("Show instructions");
+    }
+    var soundCheckbox = document.getElementById("soundCheckbox");
+    soundCheckbox.oninput = () => {
+        if (soundCheckbox.checked == true) {
+            audioOnNode.gain.setValueAtTime(1.0, audioCtx.currentTime);
+        } else {
+            audioOnNode.gain.setValueAtTime(0.0, audioCtx.currentTime);
+        }
+    }
+    var gainSlider = document.getElementById("gainSlider");
+    gainSlider.oninput = () => {
+        gain = gainSlider.value / 100.0;
+        gainNode.gain.setValueAtTime(gain, audioCtx.currentTime);
+    }
+    var mousedownCheckbox = document.getElementById("mousedownCheckbox");
+    mousedownCheckbox.oninput = () => {
+        mousedownToStrum = mousedownCheckbox.checked;
     }
 }
 
@@ -120,6 +158,10 @@ async function init()
     let IR = await fetch("./IR.wav");
     let IRbuffer = await IR.arrayBuffer();
     convolverNode.buffer = await audioCtx.decodeAudioData(IRbuffer);
+    gainNode = audioCtx.createGain();
+    gainNode.gain.value = gain;
+    audioOnNode = audioCtx.createGain();
+    audioOnNode.gain.value = 1.0;
     splitChannelNode = audioCtx.createChannelSplitter(2);
 
     let stringLengths = [0.85, 0.80, 0.75, 0.71, 0.66, 0.52, 0.57, 0.53];
@@ -140,7 +182,9 @@ async function init()
     }
     
     mergeChannelNode.connect(convolverNode);
-    convolverNode.connect(splitChannelNode);
+    convolverNode.connect(gainNode);
+    gainNode.connect(audioOnNode);
+    audioOnNode.connect(splitChannelNode);
     splitChannelNode.connect(audioCtx.destination);
 }
 
