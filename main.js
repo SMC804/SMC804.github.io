@@ -195,7 +195,7 @@ async function init()
     audioCtx = new AudioContext();
     
     dspNodes = new Array(nStrings);
-    await audioCtx.audioWorklet.addModule('stiffstring-processor.js');
+    await audioCtx.audioWorklet.addModule('string-processors.js');
 
     mergeChannelNode = audioCtx.createChannelMerger(8);
     convolverNode = audioCtx.createConvolver();
@@ -213,8 +213,18 @@ async function init()
     // let stringFrequencies = [440.0, 440.0, 440.0, 440.0, 659.25, 554.37, 659.25, 554.37]; // Tuning from book +1 octave
     let stringFrequencies = [220.0, 220.0, 220.0, 220.0, 329.63, 220.0, 277.18, 329.63]; // Tuning from book +0 octave
 
-    for (let i = 0; i < nStrings; i++) {
-        dspNodes[i] = new AudioWorkletNode(audioCtx, 'stiffstring-processor', {
+    dspNodes[0] = new AudioWorkletNode(audioCtx, 'melodystring-processor', {
+        processorOptions: {
+            fs: audioCtx.sampleRate,
+            length: stringLengths[0],
+            frequency: stringFrequencies[0],
+            radius: 4.6e-4,
+        }
+    });
+    dspNodes[0].connect(mergeChannelNode);
+
+    for (let i = 1; i < nStrings; i++) {
+        dspNodes[i] = new AudioWorkletNode(audioCtx, 'string-processor', {
             processorOptions: {
                 fs: audioCtx.sampleRate,
                 length: stringLengths[i],
@@ -249,7 +259,6 @@ function createPluckNode(maxForce, pluckDur)
 async function play(i, inputPoint)
 {
     if (!audioCtx) await init();
-
 
     let pluckDur = 0.005;
     let pluckForce = 100;
