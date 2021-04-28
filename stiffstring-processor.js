@@ -12,8 +12,8 @@ class StiffStringProcessor extends AudioWorkletProcessor
         this.I = (Math.PI*this.radius**4)/4;
         this.Emod = 2.7e9;
         this.k = 1/options.processorOptions['fs'];
-        this.sigma0 = 2;
-        this.sigma1 = 0.005;
+        this.sigma0 = 1.3;
+        this.sigma1 = 1.3e-4;
         this.kappa = Math.sqrt(this.Emod*this.I/this.rho/this.Area); 
         this.T = (2*options.processorOptions.frequency*this.L)**2 * this.rho * this.Area;
         this.c = Math.sqrt(this.T/this.rho/this.Area);
@@ -34,6 +34,8 @@ class StiffStringProcessor extends AudioWorkletProcessor
         
         this.c1 = -2*this.rho*this.Area*this.sigma1/this.h**2/this.k;
         this.c2 = 2*this.rho*this.Area*this.sigma0/this.k + 4*this.rho*this.Area*this.sigma1/this.h**2/this.k - this.rho*this.Area/this.k**2;
+
+        this.factor = this.k**2 / this.rho / this.Area;
     }
 
     static get parameterDescriptors () {
@@ -51,6 +53,13 @@ class StiffStringProcessor extends AudioWorkletProcessor
                 minValue: 0,
                 maxValue: 1,
                 automationRate: 'k-rate'
+            },
+            {   
+                name: 'pluckingpoint',
+                defaultValue: 0.7,
+                minValue: 0,
+                maxValue: 1,
+                automationRate: 'k-rate'
             }
         ];
     } 
@@ -60,24 +69,40 @@ class StiffStringProcessor extends AudioWorkletProcessor
         const output = outputs[0][0];
         const input = inputs[0][0];
 
-        let strum = new Array(this.N+3).fill(0);
-        if (input !== undefined) {
-            this.prevU[Math.floor(this.N/2)] = 1;
-            this.currU[Math.floor(this.N/2)] = 1;
-        }
-
+        let pluckingpoint = parameters['pluckingpoint'][0] * this.L;
+        let pluckingidx = Math.floor(pluckingpoint/this.h);
+        let pluckingalpha = pluckingpoint/this.h - pluckingidx;
 
         let listeningpoint = Math.round(parameters['listeningpoint'][0] * this.N);
         let frettingpoint = Math.round(parameters['frettingpoint'][0] * (this.N - 1)) + 1;
         for (let i = 0; i < output.length; i++) 
         {
+            this.currU[frettingpoint] = 0;
+
+            if (frettingpoint == 1) {
+                // simply supported at the "nut"
+                this.currU[frettingpoint - 1] = -this.currU[frettingpoint + 1];
+            } else {
+                // clamped when fretted, otherwise repeated fretting causes instability
+                this.currU[frettingpoint - 1] = 0;
+            }
+
             for (let l = 2; l < this.N+1; l++)
             {
                 this.nextU[l] = this.b1*this.currU[l-2] + this.b2*this.currU[l-1] + this.b3*this.currU[l] + this.b2*this.currU[l+1] + this.b1*this.currU[l+2]
                                 + this.c1*this.prevU[l-1] + this.c2*this.prevU[l] + this.c1*this.prevU[l+1];
 
-                this.nextU[l] = this.nextU[l] * this.k**2 / this.rho / this.Area;
             }
+
+            if (input !== undefined) {
+                this.nextU[pluckingidx+2] += (1 - pluckingalpha) * input[i] / this.h;
+                this.nextU[pluckingidx+3] += pluckingalpha * input[i] / this.h;
+            }
+
+            for (let l = 2; l < this.N+1; l++) {
+                this.nextU[l] *= this.factor;
+            }
+
             this.nextU[this.N+2] = -this.nextU[this.N];
             this.nextU[0] = -this.nextU[2];
             output[i] = this.nextU[listeningpoint];
