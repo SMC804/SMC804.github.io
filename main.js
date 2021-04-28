@@ -224,7 +224,12 @@ async function init()
             fretPos: fretTuning
         }
     });
-    dspNodes[0].connect(mergeChannelNode);
+
+    stringGain = 100;
+    stringGainNode = audioCtx.createGain();
+    stringGainNode.gain.value = stringGain;
+    dspNodes[0].connect(stringGainNode);
+    stringGainNode.connect(mergeChannelNode);
 
     for (let i = 1; i < nStrings; i++) {
         dspNodes[i] = new AudioWorkletNode(audioCtx, 'string-processor', {
@@ -236,7 +241,10 @@ async function init()
             }
         });
 
-        dspNodes[i].connect(mergeChannelNode);
+        stringGainNode = audioCtx.createGain();
+        stringGainNode.gain.value = stringGain;
+        dspNodes[i].connect(stringGainNode);
+        stringGainNode.connect(mergeChannelNode);
     }
     
     mergeChannelNode.connect(convolverNode);
@@ -264,7 +272,7 @@ async function play(i, inputPoint)
     if (!audioCtx) await init();
 
     let pluckDur = 0.005;
-    let pluckForce = 100;
+    let pluckForce = 1;
     let pluckNode = createPluckNode(pluckForce, pluckDur);
     dspNodes[i].parameters.get('pluckingpoint').setValueAtTime(inputPoint, audioCtx.currentTime);
     pluckNode.connect(dspNodes[i]);
