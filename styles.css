@@ -53,7 +53,7 @@ html, body {
 }
 
 #StringDiv {
-	width: inherit;
+	width: 100%;
 	position: absolute;
 	z-index: 10;
 }
