@@ -71,6 +71,10 @@ class StiffStringProcessor extends AudioWorkletProcessor
 
         let pluckingpoint = parameters['pluckingpoint'][0] * this.L;
         let pluckingidx = Math.floor(pluckingpoint/this.h);
+
+        if (pluckingidx < 1) pluckingidx = 1;
+        if (pluckingidx + 2 > this.N) pluckingidx = this.N-2;
+
         let pluckingalpha = pluckingpoint/this.h - pluckingidx;
 
         let listeningpoint = Math.round(parameters['listeningpoint'][0] * this.N);
@@ -95,8 +99,8 @@ class StiffStringProcessor extends AudioWorkletProcessor
             }
 
             if (input !== undefined) {
-                this.nextU[pluckingidx+2] += (1 - pluckingalpha) * input[i] / this.h;
-                this.nextU[pluckingidx+3] += pluckingalpha * input[i] / this.h;
+                this.nextU[pluckingidx+1] += (1 - pluckingalpha) * input[i] / this.h;
+                this.nextU[pluckingidx+2] += pluckingalpha * input[i] / this.h;
             }
 
             for (let l = 2; l < this.N+1; l++) {
