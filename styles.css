@@ -2,6 +2,7 @@ html, body {
 	max-width: 100%;
 	overflow-x: hidden;
 	font-family:Arial;
+	margin: 0;
 }
 
 .playbutton {
@@ -30,19 +31,25 @@ html, body {
 }
 
 #langeleik {
-	width: 90vw;
+	width: inherit;
 	height: 50vh;
-	padding: 5%;
+	padding-top: 5%; 
 	position: relative;
 	display: flex;
 }
 
 #langeleikBody {
-	width: inherit;
+	width: 100%;
 	height: inherit;
 	position: absolute;
 	z-index: 1;
 	background-color: burlywood;
+	image-rendering: optimizeSpeed;
+	image-rendering: crisp-edges;
+	image-rendering: -moz-crisp-edges;
+	image-rendering: -o-crisp-edges;
+	image-rendering: -webkit-optimize-contrast;
+	-ms-interpolation-mode: nearest-neighbor;
 }
 
 #StringDiv {
@@ -55,8 +62,8 @@ html, body {
 	width: 90%;
 	position: relative;
 	z-index: 1;
-	padding-left: 5%;
-	padding-right: 5%;
+	margin-left: 5%;
+	margin-right: 5%;
 }
 
 .footer {
