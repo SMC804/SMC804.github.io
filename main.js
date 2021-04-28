@@ -35,8 +35,10 @@ var stringHeight;
 
 const nStrings = 8;
 
-let fretsDown = [false, false, false, false, false, false, false, false, false, false, false, false, false, false];
-let fretTuning = [0.1111, 0.2099, 0.25, 0.3333, 0.4074, 0.4733, 0.5, 0.1111, 0.2099, 0.25, 0.3333, 0.4074, 0.4733, 0.5];
+//let fretsDown = [false, false, false, false, false, false, false, false, false, false, false, false, false, false];
+//let fretTuning = [0.1111, 0.2099, 0.25, 0.3333, 0.4074, 0.4733, 0.5, 0.1111, 0.2099, 0.25, 0.3333, 0.4074, 0.4733, 0.5];
+let fretTuning = [0.1111, 0.2099, 0.25, 0.3333, 0.4074, 0.4733, 0.5];
+let fretsDown = Array(fretTuning.length).fill(false);
 
 class LangString {
     constructor(height, width, number, parent) {
@@ -219,6 +221,7 @@ async function init()
             length: stringLengths[0],
             frequency: stringFrequencies[0],
             radius: 4.6e-4,
+            fretPos: fretTuning
         }
     });
     dspNodes[0].connect(mergeChannelNode);
@@ -271,27 +274,27 @@ async function play(i, inputPoint)
 function fretting(e, down) {
     // Diatonic major scale pythagorean tuning
         switch (e.code) {
-        case "KeyM":
-                fretsDown[13] = down;
-            break;
-        case "KeyN":
-                fretsDown[12] = down;
-            break;
-        case "KeyB":
-                fretsDown[11] = down;
-            break;
-        case "KeyV":
-                fretsDown[10] = down;
-            break;
-        case "KeyC":
-                fretsDown[9] = down;
-            break;
-        case "KeyX":
-                fretsDown[8] = down;
-            break;
-        case "KeyZ":
-                fretsDown[7] = down;
-            break;
+        //case "KeyM":
+                //fretsDown[13] = down;
+            //break;
+        //case "KeyN":
+                //fretsDown[12] = down;
+            //break;
+        //case "KeyB":
+                //fretsDown[11] = down;
+            //break;
+        //case "KeyV":
+                //fretsDown[10] = down;
+            //break;
+        //case "KeyC":
+                //fretsDown[9] = down;
+            //break;
+        //case "KeyX":
+                //fretsDown[8] = down;
+            //break;
+        //case "KeyZ":
+                //fretsDown[7] = down;
+            //break;
         case "KeyJ":
                 fretsDown[6] = down;
             break;
@@ -316,12 +319,10 @@ function fretting(e, down) {
         default:
             break;
     }   
-    let fret = fretsDown.lastIndexOf(true);
-    if (fret >= 0) {
-        dspNodes[0].parameters.get('frettingpoint').setValueAtTime(fretTuning[fret], audioCtx.currentTime);
-    }
-    else {
-        dspNodes[0].parameters.get('frettingpoint').setValueAtTime(0.0, audioCtx.currentTime);
+    for (let i = 0; i < fretsDown.length; i++)
+    {
+        if (fretsDown[i]) dspNodes[0].parameters.get(`fret${i}pressed`).value = 1;
+        else              dspNodes[0].parameters.get(`fret${i}pressed`).value = 0;
     }
     drawFrets();
 }

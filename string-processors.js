@@ -14,9 +14,7 @@ class StringProcessor extends AudioWorkletProcessor
         this.k = 1/options.processorOptions['fs'];
         this.sigma0 = 1.3;
         this.sigma1 = 1.3e-4;
-        this.kappa = Math.sqrt(this.Emod*this.I/this.rho/this.Area); 
         this.T = (2*options.processorOptions.frequency*this.L)**2 * this.rho * this.Area;
-        this.c = Math.sqrt(this.T/this.rho/this.Area);
         this.h = Math.sqrt(this.k/2*(this.T*this.k/this.rho/this.Area + 4*this.sigma1 + Math.sqrt((this.T*this.k/this.rho/this.Area + 4*this.sigma1)**2 + 16*this.Emod*this.I/this.rho/this.Area)));
 
         this.N = Math.floor(this.L/this.h);
@@ -26,8 +24,6 @@ class StringProcessor extends AudioWorkletProcessor
         this.currU = new Array(this.N-1).fill(0);
         this.nextU = new Array(this.N-1).fill(0);
 
-        this.printVal = true;
-
         this.b1 = -this.Emod * this.I / this.h**4;
         this.b2 = (this.T*this.h**2 + 4*this.Emod*this.I + 2*this.rho*this.Area*this.sigma1*this.h**2/this.k) / this.h**4;
         this.b3 = (-2*this.T*this.h**2 -6*this.Emod*this.I - 2*this.rho*this.Area*this.sigma0*this.h**4/this.k - 4*this.rho*this.Area*this.sigma1*this.h**2/this.k + 2*this.rho*this.Area*this.h**4/this.k**2) / this.h**4;
@@ -35,7 +31,7 @@ class StringProcessor extends AudioWorkletProcessor
         this.c1 = -2*this.rho*this.Area*this.sigma1/this.h**2/this.k;
         this.c2 = 2*this.rho*this.Area*this.sigma0/this.k + 4*this.rho*this.Area*this.sigma1/this.h**2/this.k - this.rho*this.Area/this.k**2;
 
-        this.factor = this.k**2 / this.rho / this.Area;
+        this.a = this.k**2 / this.rho / this.Area;
     }
 
     static get parameterDescriptors () {
@@ -99,7 +95,7 @@ class StringProcessor extends AudioWorkletProcessor
     normalize()
     {
         for (let l = 0; l < this.N-1; l++) {
-            this.nextU[l] *= this.factor;
+            this.nextU[l] *= this.a;
         }
     }
 
@@ -107,7 +103,7 @@ class StringProcessor extends AudioWorkletProcessor
     {
         this.prevU = this.currU;
         this.currU = this.nextU;
-        this.nextU = new Array(this.N-1).fill(0);
+        this.nextU = new Array(this.N-1);
     }
 
     process (inputs, outputs, parameters)
@@ -132,23 +128,90 @@ class MelodyStringProcessor extends StringProcessor {
 
     constructor(options) {
         super(options);
+
+        let nFrets = MelodyStringProcessor.NFRETS;
+
+        this.K = 1e15;
+        this.alpha = 1.01;
+
+        this.fretPos = options.processorOptions.fretPos;
+        console.assert(this.fretPos.length === nFrets, `Expected ${nFrets} frets, got ${this.fretPos.length} frets`);
+        
+        this.fretIdx = new Array(nFrets);
+        this.fretAlpha = new Array(nFrets);
+        this.fingerStart = new Array(nFrets).fill(5e-3);
+        this.fingerStop = new Array(nFrets);
+        this.initialFingerV = new Array(nFrets).fill(-9.0);
+        this.fingerV = new Array(nFrets).fill(0.0);
+        this.fingerMass = new Array(nFrets).fill(1e-4);
+
+        this.fingerPrev = new Array(nFrets);
+        this.fingerCurr = new Array(nFrets);
+        this.fingerNext = new Array(nFrets);
+
+        this.etaPrev = new Array(nFrets);
+        this.etaCurr = new Array(nFrets);
+        this.etaNext = new Array(nFrets);
+
+        this.psi = new Array(nFrets);
+        this.g = new Array(nFrets);
+
+        this.fingerForce = new Array(nFrets).fill(0.0);
+
+        for (let i = 0; i < nFrets; i++) {
+            this.fretIdx[i] = Math.floor(this.fretPos[i] / this.h);
+            this.fretAlpha[i] = this.fretPos[i] / this.h - this.fretIdx[i];
+
+            this.fingerPrev[i] = this.fingerStart[i];
+            this.fingerCurr[i] = this.fingerStart[i];
+
+            this.etaPrev = -this.fingerPrev[i];
+            this.etaCurr = -this.fingerCurr[i];
+        }
+
+        this.fretPressed = Array(nFrets).fill(false);
     }
+
+    processArguments(inputs, parameters)
+    {
+        super.processArguments(inputs, parameters);
+        let nFrets = MelodyStringProcessor.NFRETS;
+        for (let i = 0; i < nFrets; i++) {
+            this.fretPressed[i] = parameters[`fret${i}pressed`][0];
+        }
+    }
+
+    updateForces(i)
+    {
+        super.updateForces(i);
+
+        let nFrets = MelodyStringProcessor.NFRETS;
+        for (let i = 0; i < nFrets; i++) {
+            if (this.fretPressed[i]) 
+                this.nextU[Math.round(this.fretPos[i] / this.h)] = 0;
+        }
+    }
+
+    // This needs to be statically defined so that the parameterDescriptor matches
+    static get NFRETS() { return 7; }
 
     static get parameterDescriptors()
     {
-        return super.parameterDescriptors.concat([
-            {   
-                name: 'frettingpoint',
-                defaultValue: 0,
-                minValue: 0,
-                maxValue: 1,
-                automationRate: 'k-rate'
-            },
-        ]);
+        let desc = super.parameterDescriptors;
+        for (let i = 0; i < MelodyStringProcessor.NFRETS; i++) {
+            desc = desc.concat([
+                {   
+                    name: `fret${i}pressed`,
+                    defaultValue: 0,
+                    minValue: 0,
+                    maxValue: 1,
+                    automationRate: 'k-rate'
+                },
+            ]);
+        }
+        return desc;
     }
 }
 
 registerProcessor('string-processor', StringProcessor);
-
-
 registerProcessor('melodystring-processor', MelodyStringProcessor);
