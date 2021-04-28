@@ -22,9 +22,9 @@ class StiffStringProcessor extends AudioWorkletProcessor
         this.N = Math.floor(this.L/this.h);
         this.h = this.L/this.N;
 
-        this.prevU = new Array(this.N+3).fill(0);
-        this.currU = new Array(this.N+3).fill(0);
-        this.nextU = new Array(this.N+3).fill(0);
+        this.prevU = new Array(this.N-1).fill(0);
+        this.currU = new Array(this.N-1).fill(0);
+        this.nextU = new Array(this.N-1).fill(0);
 
         this.printVal = true;
 
@@ -69,29 +69,31 @@ class StiffStringProcessor extends AudioWorkletProcessor
         const output = outputs[0][0];
         const input = inputs[0][0];
 
+        let N = this.N;
         let pluckingpoint = parameters['pluckingpoint'][0] * this.L;
         let pluckingidx = Math.floor(pluckingpoint/this.h);
 
-        if (pluckingidx < 1) pluckingidx = 1;
-        if (pluckingidx + 2 > this.N) pluckingidx = this.N-2;
+        if (pluckingidx >= N - 2) pluckingidx = N-2;
 
         let pluckingalpha = pluckingpoint/this.h - pluckingidx;
 
-        let listeningpoint = Math.round(parameters['listeningpoint'][0] * this.N);
-        let frettingpoint = Math.round(parameters['frettingpoint'][0] * (this.N - 1)) + 1;
+        let listeningpoint = Math.round(parameters['listeningpoint'][0] * N);
+        let frettingpoint = Math.round(parameters['frettingpoint'][0] * (N - 1)) + 1;
         for (let i = 0; i < output.length; i++) 
         {
-            this.currU[frettingpoint] = 0;
+            
+            // boundary points need special treatment
+            // simply supported boundary: currU[-1] = 0, currU[-2] = -currU[0] and likewise on the other end
+            this.nextU[0] = (this.b3-this.b1)*this.currU[0] + this.b2*this.currU[1] + this.b1*this.currU[2] + this.c2*this.prevU[0] + this.c1*this.prevU[1];
+            this.nextU[1] = this.b2*this.currU[0] + this.b3*this.currU[1] + this.b2*this.currU[2] + this.b1*this.currU[3]
+                            + this.c1*this.prevU[0] + this.c2*this.prevU[1] + this.c1*this.prevU[2];
 
-            if (frettingpoint == 1) {
-                // simply supported at the "nut"
-                this.currU[frettingpoint - 1] = -this.currU[frettingpoint + 1];
-            } else {
-                // clamped when fretted, otherwise repeated fretting causes instability
-                this.currU[frettingpoint - 1] = 0;
-            }
+            this.nextU[N-3] = this.b1*this.currU[N-5] + this.b2*this.currU[N-4] + this.b3*this.currU[N-3] + this.b2*this.currU[N-2]
+                            + this.c1*this.prevU[N-4] + this.c2*this.prevU[N-3] + this.c1*this.prevU[N-2];
+            this.nextU[N-2] = (this.b3-this.b1)*this.currU[N-2] + this.b2*this.currU[N-3] + this.b1*this.currU[N-4] + this.c2*this.prevU[N-2] + this.c1*this.prevU[N-3];
 
-            for (let l = 2; l < this.N+1; l++)
+            // now that that's taken care of, all other points play nice
+            for (let l = 2; l < N-3; l++)
             {
                 this.nextU[l] = this.b1*this.currU[l-2] + this.b2*this.currU[l-1] + this.b3*this.currU[l] + this.b2*this.currU[l+1] + this.b1*this.currU[l+2]
                                 + this.c1*this.prevU[l-1] + this.c2*this.prevU[l] + this.c1*this.prevU[l+1];
@@ -103,17 +105,15 @@ class StiffStringProcessor extends AudioWorkletProcessor
                 this.nextU[pluckingidx+2] += pluckingalpha * input[i] / this.h;
             }
 
-            for (let l = 2; l < this.N+1; l++) {
+            for (let l = 0; l < this.N-1; l++) {
                 this.nextU[l] *= this.factor;
             }
 
-            this.nextU[this.N+2] = -this.nextU[this.N];
-            this.nextU[0] = -this.nextU[2];
             output[i] = this.nextU[listeningpoint];
             this.prevU = this.currU;
             this.currU = this.nextU;
 
-            this.nextU = new Array(this.N+3).fill(0);
+            this.nextU = new Array(N-1).fill(0);
         }
         return true;
     }
