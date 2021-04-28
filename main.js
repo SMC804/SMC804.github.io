@@ -210,16 +210,16 @@ async function init()
     splitChannelNode = audioCtx.createChannelSplitter(2);
 
     let stringLengths = [0.85, 0.80, 0.75, 0.71, 0.66, 0.52, 0.57, 0.53];
-    let stringFrequencies = [440.0, 440.0, 440.0, 440.0, 659.25, 554.37, 659.25, 554.37]; // Tuning from book +1 octave
-    // let stringFrequencies = [220.0, 220.0, 220.0, 220.0, 329.63, 220.0, 277.18, 329.63]; // Tuning from book +0 octave
+    // let stringFrequencies = [440.0, 440.0, 440.0, 440.0, 659.25, 554.37, 659.25, 554.37]; // Tuning from book +1 octave
+    let stringFrequencies = [220.0, 220.0, 220.0, 220.0, 329.63, 220.0, 277.18, 329.63]; // Tuning from book +0 octave
 
     for (let i = 0; i < nStrings; i++) {
         dspNodes[i] = new AudioWorkletNode(audioCtx, 'stiffstring-processor', {
             processorOptions: {
                 fs: audioCtx.sampleRate,
-                length: 1,
+                length: stringLengths[i],
                 frequency: stringFrequencies[i],
-                radius: (i+1) * 2.2e-4,
+                radius: 4.6e-4,
             }
         });
 
@@ -233,27 +233,30 @@ async function init()
     splitChannelNode.connect(audioCtx.destination);
 }
 
+function createPluckNode(maxForce, pluckDur)
+{
+    let pluckNode = audioCtx.createBufferSource();
+    let pluckDurSamples = Math.round(pluckDur * audioCtx.sampleRate);
+    let pluckBuffer = audioCtx.createBuffer(1, pluckDurSamples, audioCtx.sampleRate);
+    let buffer = pluckBuffer.getChannelData(0);
+    for (var n = 0; n < pluckDurSamples; n++) {
+        buffer[n] = maxForce / 2 * (1 - Math.cos(Math.PI * n / pluckDurSamples));
+    }
+    pluckNode.buffer = pluckBuffer;
+    return pluckNode;
+}
+
 async function play(i, inputPoint)
 {
     if (!audioCtx) await init();
-    let strumForceNode = audioCtx.createBufferSource();
-    let strumBuffer = audioCtx.createBuffer(1, 128, audioCtx.sampleRate);
-    let buffer = strumBuffer.getChannelData(0);
-    let point = Math.abs(Math.floor(128*inputPoint));
-    // Let's do some Hann windowing for strumming
-    let hann = [0.0, 0.5, 1, 0.5, 0.0];
-    let windowCounter = 0;
-    for (var n = 0; n < 128; n++) {
-        if (n >= point-2 && n <= point+2) {
-            buffer[n] = hann[windowCounter];
-            windowCounter++;
-        } else {
-            buffer[n] = 0;
-        }
-    }
-    strumForceNode.buffer = strumBuffer;
-    strumForceNode.connect(dspNodes[i]);
-    strumForceNode.start(audioCtx.currentTime);
+
+
+    let pluckDur = 0.005;
+    let pluckForce = 100;
+    let pluckNode = createPluckNode(pluckForce, pluckDur);
+    dspNodes[i].parameters.get('pluckingpoint').setValueAtTime(inputPoint, audioCtx.currentTime);
+    pluckNode.connect(dspNodes[i]);
+    pluckNode.start(audioCtx.currentTime);
 }
 
 function fretting(e, down) {
