@@ -1,8 +1,8 @@
 clear;
 fs = 44100;
-s = 2.5;
+s = 0.2;
 
-L = 0.65;
+L = 0.85;
 
 radius = 4e-04;
 rho = 1200;
@@ -58,7 +58,7 @@ Dxx = Dxbwd * Dxfwd;
 Dxxxx = Dxx^2;
 
 K = 1e15;
-alpha = 1.01;
+alpha = 1.001;
 
 
 nFinger = 3;
@@ -73,9 +73,9 @@ end
 Ifinger = Jfinger';
 Jfinger = Jfinger / h;
 fingerstart = 5e-3 * ones(nFinger, 1);
-fingerstop = [-1e-3 -2e-3 -3e-3];
+fingerstop = [-1e-3 -2e-3 -5e-4];
 
-fingerVStart = [0;-8;-10];
+fingerVStart = [0;-2;-3];
 fingerV = fingerVStart;
 fingerV = fingerVStart * 0;
 fingerMass = [2e-4; 1e-4; 1e-4];
@@ -90,10 +90,12 @@ etaFingerNext = zeros(nFinger, 1);
 
 
 %
-%excvec = excvec * 0;
+excvec = excvec * 0;
 
 for n = 1:fs*s
-    
+   if n == 1
+        fingerV(3) = fingerVStart(3);
+    end
     tension = T * Dxx * u;
     stiffness = Emod * In * Dxxxx * u;
     lossindpd = 2 * rho * Area * sigma0 * (u - uPrev) / k;
@@ -110,10 +112,28 @@ for n = 1:fs*s
     as = rho * Area / k^2 * ones(N+3, 1);
     
     uNext = tension - lossindpd + lossdpd - stiffness - inertial + excspread * excvec(n);
+    
+    factor = (gfinger(3)^2/(4*af(3)) - 1) * gfinger(3)^2/4;
+    idx = fingeridx(3);
+    x1 = as(1) - factor * Ifinger(3, idx+2)^2 / h;
+    x2 = -factor * (Ifinger(3, idx+3) - Ifinger(3, idx+3)^2) / h;
+    x3 = -factor * (Ifinger(3, idx+3) - Ifinger(3, idx+3)^2) / h;
+    x4 = as(1) - factor * Ifinger(3, idx+3)^2 / h;
+    
     A = diag(as);
     for i=1:nFinger
         uNext = uNext - Jfinger(:,i) * gfinger(i) * psiFinger(i) + Jfinger(:,i) * etaFingerPrev(i) * gfinger(i)^2 / 4 + Jfinger(:,i) * gfinger(i)^2 * fingerNext(i) / (4*af(i));
         A = A - (gfinger(i)^2/(4*af(i)) - 1) * gfinger(i)^2/4 * Jfinger(:,i) * Ifinger(i,:);
+    end
+    
+    if etaFinger(3) > 0
+        test = uNext(idx+2:idx+3)'/[x1 x2; x3 x4]';
+        det = 1/(x1*x4 - x2*x3);
+        q1 = uNext(idx+2);
+        q2 = uNext(idx+3);
+        
+        test2 = det * (x4*q1 - x2*q2);
+        test3 = det * (-x3*q1 + x1*q2);
     end
     
     uNext = (uNext'/A')';
@@ -137,9 +157,7 @@ for n = 1:fs*s
     end
 
     
-    if n == fs
-        fingerV(3) = fingerVStart(3);
-    end
+   
     
     if n == fs/2
         fingerV(2) = fingerVStart(2);
@@ -147,21 +165,23 @@ for n = 1:fs*s
     currFingerV = (fingerNext - fingerPrev) / (2*k);
     
     fingerforce = (gfinger.^2/4 .* (etaFingerNext - etaFingerPrev) + gfinger .* psiFinger);
-    fingerforce(fingerforce < 0) = 0;
+    %fingerforce(fingerforce < 0) = 0;
     
     
     for i=1:nFinger
-       fingerforce(i) = fingerforce(i) + fingerMass(i) * max(currFingerV(i) - fingerV(i), 0)/k;
+       fingerforce(i) = fingerforce(i) + fingerMass(i) * (currFingerV(i) - fingerV(i))/2/k;
     end
     
     psiFinger = psiFinger + (etaFingerNext - etaFingerPrev) / 2;
     
     uPrev = u;
     u = uNext;
-    etaFinger = etaFingerNext;
     etaFingerPrev = etaFinger;
-    finger = fingerNext;
+    etaFinger = etaFingerNext;
+
     fingerPrev = finger;
+    finger = fingerNext;
+
     
     
     if n == round(1.5 * fs)
