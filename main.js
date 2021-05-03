@@ -155,6 +155,7 @@ function buildLangeleik() {
     }
 
     init();
+    drawFrets();
     render();
 }
 
@@ -192,9 +193,13 @@ function drawFrets()
     var canvas = document.getElementById("langeleikBody");
     var ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    var fretWidth = canvas.width / 80;
     fretsDown.forEach((down, idx) => {
+        var fretPosX = canvas.width * fretTuning[idx];
+        ctx.beginPath()
+        ctx.fillStyle = "#582817";
+        ctx.fillRect(fretPosX-fretWidth/2, (12*stringHeight)-3, fretWidth, stringHeight);
         if(down) {
-            var fretPosX = canvas.width * fretTuning[idx];
             ctx.beginPath();
             ctx.arc(fretPosX, (12*stringHeight)+10, stringHeight, 0, 2 * Math.PI);
             ctx.fillStyle = "rgba(128,128,128, 0.3)";
