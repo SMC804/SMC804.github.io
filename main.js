@@ -2,6 +2,8 @@ let AudioContext = window.AudioContext || window.webkitAudioContext;
 let audioCtx;
 let dspNodes;
 let mergeChannelNode;
+let dryGainNode;
+let wetGainNode;
 let convolverNode;
 let splitChannelNode;
 let gainNode;
@@ -10,6 +12,9 @@ let audioOnNode;
 let gain = 0.80;
 let mousedownToStrum = false;
 let mouseIsDown = false;
+
+// Advanced parameters
+let wetMix = 0.8;
 
 window.requestAnimFrame = (function() {
     return  window.requestAnimationFrame ||
@@ -212,6 +217,10 @@ async function init()
     // Load impulse response
     let IR = await fetch("./IR.wav");
     let IRbuffer = await IR.arrayBuffer();
+    dryGainNode = audioCtx.createGain();
+    dryGainNode.gain.value = 1 - wetMix;
+    wetGainNode = audioCtx.createGain();
+    wetGainNode.gain.value = wetMix;
     convolverNode.buffer = await audioCtx.decodeAudioData(IRbuffer);
     gainNode = audioCtx.createGain();
     gainNode.gain.value = gain;
@@ -255,7 +264,10 @@ async function init()
         stringGainNode.connect(mergeChannelNode);
     }
     
-    mergeChannelNode.connect(convolverNode);
+    mergeChannelNode.connect(wetGainNode);
+    mergeChannelNode.connect(dryGainNode);
+    wetGainNode.connect(convolverNode);
+    dryGainNode.connect(gainNode);
     convolverNode.connect(gainNode);
     gainNode.connect(audioOnNode);
     audioOnNode.connect(splitChannelNode);
