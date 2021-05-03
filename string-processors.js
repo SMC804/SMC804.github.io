@@ -7,10 +7,12 @@ class StringProcessor extends AudioWorkletProcessor
 
         this.L = options.processorOptions.length;
         this.radius = options.processorOptions.radius;
-        this.rho = 1200;
+        // this.rho = 1200;
+        this.rho = 6000;
         this.Area = Math.PI*this.radius**2;
         this.I = (Math.PI*this.radius**4)/4;
-        this.Emod = 2e9;
+        // this.Emod = 2e9;
+        this.Emod = 180e9;
         this.k = 1/options.processorOptions['fs'];
         this.sigma0 = 1.38;
         this.sigma1 = 1.3e-4;
