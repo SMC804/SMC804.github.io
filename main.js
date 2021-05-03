@@ -279,8 +279,8 @@ async function play(i, inputPoint, duration)
 {
     if (!audioCtx) await init();
 
-    let pluckForce = 1;
-    let pluckDur = duration/1000.0;
+    let pluckForce = Math.max((2.5-duration/50), 0.1)
+    let pluckDur = 0.0005;
     let pluckNode = createPluckNode(pluckForce, pluckDur);
     dspNodes[i].parameters.get('pluckingpoint').setValueAtTime(inputPoint, audioCtx.currentTime);
     pluckNode.connect(dspNodes[i]);
