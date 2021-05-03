@@ -50,7 +50,7 @@ class LangString {
         this.y = this.height;
         this.a = 0;
         this.force = 0;
-
+        this.mouseentertime = 0;
 
         this.canvas = document.createElement("canvas");
         this.canvas.id = "LangString-" + this.number;
@@ -58,11 +58,19 @@ class LangString {
         this.canvas.style.height = this.height + "px";
         this.parent.appendChild(this.canvas);
 
+        this.canvas.onmouseenter = (e) => {
+            if (!(mousedownToStrum && !mouseIsDown)) {
+                this.mouseentertime = Date.now();
+            }
+        }
+
         this.canvas.onmouseleave = (e) => {
             if (!(mousedownToStrum && !mouseIsDown)) {
+                var duration = Date.now() - this.mouseentertime;
+                console.log("Strum duration", duration);
                 var rect = e.target.getBoundingClientRect();
                 var pos = (e.clientX - rect.left) / rect.width;
-                play(this.number, pos);
+                play(this.number, pos, duration);
                 this.force = 5;
             }
         }
@@ -267,12 +275,12 @@ function createPluckNode(maxForce, pluckDur)
     return pluckNode;
 }
 
-async function play(i, inputPoint)
+async function play(i, inputPoint, duration)
 {
     if (!audioCtx) await init();
 
-    let pluckDur = 0.005;
     let pluckForce = 1;
+    let pluckDur = duration/1000.0;
     let pluckNode = createPluckNode(pluckForce, pluckDur);
     dspNodes[i].parameters.get('pluckingpoint').setValueAtTime(inputPoint, audioCtx.currentTime);
     pluckNode.connect(dspNodes[i]);
