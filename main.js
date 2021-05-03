@@ -14,7 +14,11 @@ let mousedownToStrum = false;
 let mouseIsDown = false;
 
 // Advanced parameters
+let advancedParametersEnabled = true;
+let controlSliders = new Array();
 let wetMix = 0.8;
+let K = 1e14;
+let alpha = 3.0;
 
 window.requestAnimFrame = (function() {
     return  window.requestAnimationFrame ||
@@ -72,7 +76,6 @@ class LangString {
         this.canvas.onmouseleave = (e) => {
             if (!(mousedownToStrum && !mouseIsDown)) {
                 var duration = Date.now() - this.mouseentertime;
-                console.log("Strum duration", duration);
                 var rect = e.target.getBoundingClientRect();
                 var pos = (e.clientX - rect.left) / rect.width;
                 play(this.number, pos, duration);
@@ -100,6 +103,30 @@ class LangString {
     }
 }
 
+class ControlSlider {
+    constructor(parent, label, func, min, max, value, step=1.0, index=0) {
+        this.box = document.createElement("div");
+        this.box.className = "controls";
+        this.box.innerHTML = label;
+        this.slider = document.createElement("input");
+        this.slider.id = label;
+        this.slider.type = "range";
+        this.slider.min = min;
+        this.slider.max = max;
+        this.slider.value = value;
+        this.slider.step = step;
+        this.index = index;
+        this.func = func;
+        this.slider.oninput = () => {
+            this.func(this.slider.value, this.index);
+        }
+        this.box.appendChild(this.slider);
+        parent.appendChild(this.box);
+
+    }
+}
+
+
 this.buildSplashScreen();
 
 function resizeCanvas() {
@@ -120,29 +147,6 @@ function buildLangeleik() {
     stringDiv.style.paddingTop = 4*stringHeight + "px";
     lang.appendChild(stringDiv);
 
-    // Inital stuff if we want to draw the langeleik
-    // // var ctx = canvas.getContext("2d");
-    // // var gradient = ctx.createLinearGradient(0,0,200,0);
-    // // gradient.addColorStop(0, "#964B00");
-    // // gradient.addColorStop(1, "#873C00");
-    // // ctx.fillStyle = gradient;
-    // // var cw = canvas.width;
-    // // var ch = canvas.height;
-    // // ctx.beginPath();
-    // // ctx.moveTo(0,0.1*ch);
-    // // ctx.arcTo(0.2*cw, 0.05*ch, 0.25*cw, 0, 0);
-    // // ctx.arcTo(0.35*cw, 0.05*ch, 0.50*cw, 0, 0);
-    // // ctx.arcTo(0.45*cw, 0.10*ch, 0.75*cw, 0.2*ch, 0);
-    // // ctx.lineTo(cw, 0.2*ch);
-    // // ctx.lineTo(cw, 0.8*ch);
-    // // ctx.lineTo(0.75*cw, 0.8*ch);
-    // // ctx.lineTo(0.50*cw, ch);
-    // // ctx.lineTo(0.25*cw, ch);
-    // // ctx.lineTo(0.0, 0.9*ch);
-    // // ctx.lineTo(0,0);
-    // // ctx.fill();
-    // // ctx.stroke();
-
     for (var i = nStrings-1; i >= 0; i--) {
         langStrings[i] = new LangString(stringHeight, canvas.clientWidth, i, stringDiv);
     }
@@ -154,6 +158,41 @@ function buildLangeleik() {
         });
     }
 
+    // Advanced parameters
+    var advancedSettings = document.createElement("div");
+    advancedSettings.className = "footer";
+    advancedSettings.id = "advancedSettings";
+    controlSliders.push(new ControlSlider(advancedSettings,"IR wet %", setWetMix, 0, 100, 80));
+    controlSliders.push(new ControlSlider(advancedSettings,"K", setKValue, 1e12, 1e16, 1e14));
+    controlSliders.push(new ControlSlider(advancedSettings,"Alpha", setAlpha, 1.0, 4.0, 3.0, 0.01));
+    for(var i = 0; i < fretTuning.length; i++) {
+        var fretName = "F"+(i+1) + ": ";
+        controlSliders.push(new ControlSlider(advancedSettings,fretName+"fingerStart", 
+        (val, index) => {
+            console.log(index+"fingerStart", val);
+            dspNodes[0].parameters.get(`fret${index}fingerstart`).setValueAtTime(val, audioCtx.currentTime); 
+        }
+            , 1e-3, 1e-2, 5e-3, 1e-4, i));
+        controlSliders.push(new ControlSlider(advancedSettings,fretName+"fingerStop", 
+        (val, index) => {
+            console.log(index+"fingerStop", val);
+            dspNodes[0].parameters.get(`fret${index}fingerstop`).setValueAtTime(val, audioCtx.currentTime); 
+        }, -1e-2, -1e-3, -1e-3, 1e-4, i));
+        controlSliders.push(new ControlSlider(advancedSettings,fretName+"initialFingerV", 
+        (val, index) => {
+            console.log(index+"initialFingerV", val);
+            dspNodes[0].parameters.get(`fret${index}initialfingerv`).setValueAtTime(val, audioCtx.currentTime); 
+        }, -10, -2, -5, 0.1, i));
+        controlSliders.push(new ControlSlider(advancedSettings,fretName+"fingerMass", 
+        (val, index) => {
+            console.log(index+"fingerMass", val);
+            dspNodes[0].parameters.get(`fret${index}fingermass`).setValueAtTime(val, audioCtx.currentTime); 
+        }, 1e-4, 1e-2, 1e-4, 1e-5, i));
+    }
+
+    document.getElementsByTagName("BODY")[0].appendChild(advancedSettings);
+    
+    
     init();
     drawFrets();
     render();
@@ -186,6 +225,23 @@ function buildSplashScreen() {
     mousedownCheckbox.oninput = () => {
         mousedownToStrum = mousedownCheckbox.checked;
     }
+}
+
+function setWetMix(val) {
+    wetMix = val / 100.0;
+    dryGainNode.gain.setValueAtTime(1.0-wetMix, audioCtx.currentTime);
+    wetGainNode.gain.setValueAtTime(wetMix, audioCtx.currentTime);
+}
+
+function setKValue(val) {
+    K = val;
+    dspNodes[0].parameters.get("K").setValueAtTime(K, audioCtx.currentTime);
+}
+
+function setAlpha(val) {
+    alpha = val;
+    var t = dspNodes[0].parameters.get("alpha");
+    dspNodes[0].parameters.get("alpha").setValueAtTime(alpha, audioCtx.currentTime);
 }
 
 function drawFrets() 

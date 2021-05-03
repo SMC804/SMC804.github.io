@@ -79,6 +79,13 @@ html, body {
 	align-content: center;
 }
 
+#advancedSettings {
+	position: relative;
+	background-color: lightgrey;
+	flex-wrap: wrap;
+	height: auto;
+}
+
 .controls {
 	display: flex;
 	flex-direction: column;

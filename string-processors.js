@@ -176,9 +176,18 @@ class MelodyStringProcessor extends StringProcessor {
     {
         super.processArguments(inputs, parameters);
 
+        this.K = parameters['K'];
+        this.alpha = parameters['alpha'];
+
+        this.sqrtKalpha = Math.sqrt(this.K * (this.alpha + 1) / 2);
+
         let nFrets = MelodyStringProcessor.NFRETS;
         for (let i = 0; i < nFrets; i++) {
             let fretPressed = parameters[`fret${i}pressed`][0];
+            this.fingerStart[i] = parameters[`fret${i}fingerstart`];
+            this.fingerStop[i] = parameters[`fret${i}fingerstop`];
+            this.initialFingerV[i] = parameters[`fret${i}initialfingerv`];
+            this.fingerMass[i] = parameters[`fret${i}fingermass`];
 
             if (fretPressed !== this.fretPressed[i]) {
                 if (fretPressed) {
@@ -288,6 +297,22 @@ class MelodyStringProcessor extends StringProcessor {
     static get parameterDescriptors()
     {
         let desc = super.parameterDescriptors;
+        desc = desc.concat([
+            {
+                name: 'K',
+                defaultValue: 1e14,
+                minValue: 1e12,
+                maxValue: 1e16,
+                automationRate: 'k-rate'
+            },
+            {
+                name: 'alpha',
+                defaultValue: 3,
+                minValue: 1,
+                maxValue: 4,
+                automationRate: 'k-rate'
+            },
+        ])
         for (let i = 0; i < MelodyStringProcessor.NFRETS; i++) {
             desc = desc.concat([
                 {   
@@ -295,6 +320,34 @@ class MelodyStringProcessor extends StringProcessor {
                     defaultValue: 0,
                     minValue: 0,
                     maxValue: 1,
+                    automationRate: 'k-rate'
+                },
+                {
+                    name: `fret${i}fingerstart`,
+                    defaultValue: 5e-3,
+                    minValue: 1e-3,
+                    maxValue: 1e-2,
+                    automationRate: 'k-rate'
+                },
+                {
+                    name: `fret${i}fingerstop`,
+                    defaultValue: -1e-3,
+                    minValue: -1e-2,
+                    maxValue: -1e-3,
+                    automationRate: 'k-rate'
+                },
+                {
+                    name: `fret${i}initialfingerv`,
+                    defaultValue: -5,
+                    minValue: -10,
+                    maxValue: -2,
+                    automationRate: 'k-rate'
+                },
+                {
+                    name: `fret${i}fingermass`,
+                    defaultValue: 1e-4,
+                    minValue: 1e-4,
+                    maxValue: 1e-2,
                     automationRate: 'k-rate'
                 },
             ]);
