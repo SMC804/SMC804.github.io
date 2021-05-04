@@ -14,11 +14,18 @@ let mousedownToStrum = false;
 let mouseIsDown = false;
 
 // Advanced parameters
+let nFrets = 7;
 let advancedParametersEnabled = true;
 let controlSliders = new Array();
 let wetMix = 0.8;
 let K = 1e14;
 let alpha = 3.0;
+let maxStrumForce = 10;
+let strumDurationDivider = 10;
+let fingerStartVal = new Array(nFrets).fill(5e-3);
+let fingerStopVal = new Array(nFrets).fill(-1e-3);
+let initialFingerVVal = new Array(nFrets).fill(-5);
+let fingermassVal = new Array(nFrets).fill(1e-4);
 
 window.requestAnimFrame = (function() {
     return  window.requestAnimationFrame ||
@@ -111,10 +118,10 @@ class ControlSlider {
         this.slider = document.createElement("input");
         this.slider.id = label;
         this.slider.type = "range";
+        this.slider.step = step;
         this.slider.min = min;
         this.slider.max = max;
         this.slider.value = value;
-        this.slider.step = step;
         this.index = index;
         this.func = func;
         this.slider.oninput = () => {
@@ -162,41 +169,82 @@ function buildLangeleik() {
     var advancedSettings = document.createElement("div");
     advancedSettings.className = "footer";
     advancedSettings.id = "advancedSettings";
-    controlSliders.push(new ControlSlider(advancedSettings,"IR wet %", setWetMix, 0, 100, 80));
-    controlSliders.push(new ControlSlider(advancedSettings,"K", setKValue, 1e12, 1e16, 1e14));
-    controlSliders.push(new ControlSlider(advancedSettings,"Alpha", setAlpha, 1.0, 4.0, 3.0, 0.01));
+    controlSliders.push(new ControlSlider(advancedSettings,"IR wet", setWetMix, 0.0, 1.0, wetMix, 0.01));
+    controlSliders.push(new ControlSlider(advancedSettings,"K", setKValue, 1e12, 1e16, K));
+    controlSliders.push(new ControlSlider(advancedSettings,"Alpha", setAlpha, 1.0, 4.0, alpha, 0.01));
+    controlSliders.push(new ControlSlider(advancedSettings,"Max. strum force", 
+        (val) => {
+            maxStrumForce = val;
+        }, 1, 100, maxStrumForce));
+    controlSliders.push(new ControlSlider(advancedSettings,"Strum dur. div.", 
+        (val) => {
+            strumDurationDivider = val;
+        }, 0.1, 20, strumDurationDivider, 0.1));
     for(var i = 0; i < fretTuning.length; i++) {
         var fretName = "F"+(i+1) + ": ";
         controlSliders.push(new ControlSlider(advancedSettings,fretName+"fingerStart", 
         (val, index) => {
-            console.log(index+"fingerStart", val);
+            fingerStartVal[index] = val;
             dspNodes[0].parameters.get(`fret${index}fingerstart`).setValueAtTime(val, audioCtx.currentTime); 
-        }
-            , 1e-3, 1e-2, 5e-3, 1e-4, i));
+        }, 1e-3, 1e-2, fingerStartVal[i], 1e-4, i));
         controlSliders.push(new ControlSlider(advancedSettings,fretName+"fingerStop", 
         (val, index) => {
-            console.log(index+"fingerStop", val);
+            fingerStopVal[index] = val;
             dspNodes[0].parameters.get(`fret${index}fingerstop`).setValueAtTime(val, audioCtx.currentTime); 
-        }, -1e-2, -1e-3, -1e-3, 1e-4, i));
+        }, -1e-2, -1e-3, fingerStopVal[i], 1e-4, i));
         controlSliders.push(new ControlSlider(advancedSettings,fretName+"initialFingerV", 
         (val, index) => {
-            console.log(index+"initialFingerV", val);
+            initialFingerVVal[index] = val;
             dspNodes[0].parameters.get(`fret${index}initialfingerv`).setValueAtTime(val, audioCtx.currentTime); 
-        }, -10, -2, -5, 0.1, i));
+        }, -10, -2, initialFingerVVal[i], 0.1, i));
         controlSliders.push(new ControlSlider(advancedSettings,fretName+"fingerMass", 
         (val, index) => {
-            console.log(index+"fingerMass", val);
+            fingermassVal[index] = val;
             dspNodes[0].parameters.get(`fret${index}fingermass`).setValueAtTime(val, audioCtx.currentTime); 
-        }, 1e-4, 1e-2, 1e-4, 1e-5, i));
+        }, 1e-4, 1e-2, fingermassVal[i], 1e-5, i));
     }
 
-    document.getElementsByTagName("BODY")[0].appendChild(advancedSettings);
-    
-    
+    let body = document.getElementsByTagName("BODY")[0];
+    body.appendChild(advancedSettings);
+    let saveButton = document.createElement("button");
+    saveButton.innerHTML = "Save values";
+    saveButton.onclick = () => {
+        var v = {};
+        v["wetMix"] = wetMix;
+        v["K"] = K;
+        v["alpha"] = alpha;
+        v["maxStrumForce"] = maxStrumForce;
+        v["strumDurationDivider"] = strumDurationDivider;
+        for(var i = 0; i < nFrets; i++){
+            v["fingerStartVal_"+i] = fingerStartVal[i];
+            v["fingerStopVal_"+i] = fingerStopVal[i];
+            v["initialFingerVVal_"+i] = initialFingerVVal[i];
+            v["fingermassVal_"+i] = fingermassVal[i];
+        }
+        console.log(v);
+        var json = JSON.stringify(v, null, 2);
+        console.log(json);
+        download("langeleik.json", json);
+    }
+    advancedSettings.appendChild(saveButton);
+
     init();
     drawFrets();
     render();
 }
+
+function download(filename, text) {
+    var element = document.createElement('a');
+    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+    element.setAttribute('download', filename);
+  
+    element.style.display = 'none';
+    document.body.appendChild(element);
+  
+    element.click();
+  
+    document.body.removeChild(element);
+  }
 
 function buildSplashScreen() {
     var button = document.getElementById("playbutton");
@@ -228,7 +276,7 @@ function buildSplashScreen() {
 }
 
 function setWetMix(val) {
-    wetMix = val / 100.0;
+    wetMix = val;
     dryGainNode.gain.setValueAtTime(1.0-wetMix, audioCtx.currentTime);
     wetGainNode.gain.setValueAtTime(wetMix, audioCtx.currentTime);
 }
@@ -240,7 +288,6 @@ function setKValue(val) {
 
 function setAlpha(val) {
     alpha = val;
-    var t = dspNodes[0].parameters.get("alpha");
     dspNodes[0].parameters.get("alpha").setValueAtTime(alpha, audioCtx.currentTime);
 }
 
@@ -352,7 +399,7 @@ async function play(i, inputPoint, duration)
 {
     if (!audioCtx) await init();
 
-    let pluckForce = Math.max((10-duration/10), 0.1)
+    let pluckForce = Math.max((maxStrumForce-duration/strumDurationDivider), 0.1)
     let pluckDur = 0.0005;
     let pluckNode = createPluckNode(pluckForce, pluckDur);
     dspNodes[i].parameters.get('pluckingpoint').setValueAtTime(inputPoint, audioCtx.currentTime);
