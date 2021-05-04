@@ -1,6 +1,7 @@
 let AudioContext = window.AudioContext || window.webkitAudioContext;
 let audioCtx;
 let dspNodes;
+let stringGainNodes;
 let mergeChannelNode;
 let dryGainNode;
 let wetGainNode;
@@ -13,8 +14,10 @@ let gain = 0.80;
 let mousedownToStrum = false;
 let mouseIsDown = false;
 
+const nStrings = 8;
+const nFrets = 7;
+
 // Advanced parameters
-let nFrets = 7;
 let advancedParametersEnabled = true;
 let controlSliders = new Array();
 let wetMix = 0.8;
@@ -22,6 +25,7 @@ let K = 1e14;
 let alpha = 3.0;
 let maxStrumForce = 10;
 let strumDurationDivider = 10;
+let stringGainVal = new Array(nStrings).fill(100);
 let fingerStartVal = new Array(nFrets).fill(5e-3);
 let fingerStopVal = new Array(nFrets).fill(-1e-3);
 let initialFingerVVal = new Array(nFrets).fill(-5);
@@ -48,8 +52,6 @@ window.onload = resizeCanvas;
 window.onresize = resizeCanvas;
 
 var stringHeight;
-
-const nStrings = 8;
 
 //let fretsDown = [false, false, false, false, false, false, false, false, false, false, false, false, false, false];
 //let fretTuning = [0.1111, 0.2099, 0.25, 0.3333, 0.4074, 0.4733, 0.5, 0.1111, 0.2099, 0.25, 0.3333, 0.4074, 0.4733, 0.5];
@@ -180,7 +182,14 @@ function buildLangeleik() {
         (val) => {
             strumDurationDivider = val;
         }, 0.1, 20, strumDurationDivider, 0.1));
-    for(var i = 0; i < fretTuning.length; i++) {
+    for(var i = 0; i < nStrings; i++) {
+        controlSliders.push(new ControlSlider(advancedSettings,"string " + i + " gain", 
+        (val, index) => {
+            stringGainVal[index] = val;
+            stringGainNodes[index].gain.setValueAtTime(val, audioCtx.currentTime); 
+        }, 1, 1000, stringGainVal[i], 1, i));
+    }    
+    for(var i = 0; i < nFrets; i++) {
         var fretName = "F"+(i+1) + ": ";
         controlSliders.push(new ControlSlider(advancedSettings,fretName+"fingerStart", 
         (val, index) => {
@@ -215,6 +224,9 @@ function buildLangeleik() {
         v["alpha"] = alpha;
         v["maxStrumForce"] = maxStrumForce;
         v["strumDurationDivider"] = strumDurationDivider;
+        for(var i = 0; i < nStrings; i++){
+            v["stringGainVal_"+i] = stringGainVal[i];
+        }
         for(var i = 0; i < nFrets; i++){
             v["fingerStartVal_"+i] = fingerStartVal[i];
             v["fingerStopVal_"+i] = fingerStopVal[i];
@@ -318,6 +330,7 @@ async function init()
     audioCtx = new AudioContext();
     
     dspNodes = new Array(nStrings);
+    stringGainNodes = new Array(nStrings);
     await audioCtx.audioWorklet.addModule('string-processors.js');
 
     mergeChannelNode = audioCtx.createChannelMerger(8);
@@ -350,11 +363,10 @@ async function init()
         }
     });
 
-    stringGain = 100;
-    stringGainNode = audioCtx.createGain();
-    stringGainNode.gain.value = stringGain;
-    dspNodes[0].connect(stringGainNode);
-    stringGainNode.connect(mergeChannelNode);
+    stringGainNodes[0] = audioCtx.createGain();
+    stringGainNodes[0].gain.value = stringGainVal[0];
+    dspNodes[0].connect(stringGainNodes[0]);
+    stringGainNodes[0].connect(mergeChannelNode);
 
     for (let i = 1; i < nStrings; i++) {
         dspNodes[i] = new AudioWorkletNode(audioCtx, 'string-processor', {
@@ -366,10 +378,10 @@ async function init()
             }
         });
 
-        stringGainNode = audioCtx.createGain();
-        stringGainNode.gain.value = stringGain;
-        dspNodes[i].connect(stringGainNode);
-        stringGainNode.connect(mergeChannelNode);
+        stringGainNodes[i] = audioCtx.createGain();
+        stringGainNodes[i].gain.value = stringGainVal[i];
+        dspNodes[i].connect(stringGainNodes[i]);
+        stringGainNodes[i].connect(mergeChannelNode);
     }
     
     mergeChannelNode.connect(wetGainNode);
