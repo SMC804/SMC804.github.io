@@ -128,7 +128,7 @@ class MelodyStringProcessor extends StringProcessor {
 
         let nFrets = MelodyStringProcessor.NFRETS;
 
-        this.K = 1e14;
+        this.K = 1e15;
         this.alpha = 3;
 
         this.sqrtKalpha = Math.sqrt(this.K * (this.alpha + 1) / 2);
@@ -148,9 +148,9 @@ class MelodyStringProcessor extends StringProcessor {
         this.fingerCurr = new Array(nFrets);
         this.fingerNext = new Array(nFrets);
 
-        this.etaPrev = new Array(nFrets);
-        this.etaCurr = new Array(nFrets);
-        this.etaNext = new Array(nFrets);
+        this.etaPrev = new Array(nFrets).fill(0.0);
+        this.etaCurr = new Array(nFrets).fill(0.0);
+        this.etaNext = new Array(nFrets).fill(0.0);
 
         this.psi = new Array(nFrets).fill(0.0);
         this.g = new Array(nFrets);
@@ -162,11 +162,13 @@ class MelodyStringProcessor extends StringProcessor {
             this.fretIdx[i] = Math.floor(this.fretPos[i] / this.h);
             this.fretAlpha[i] = this.fretPos[i] / this.h - this.fretIdx[i];
             this.fretIdx[i] -= 1;
+            
             this.fingerPrev[i] = this.fingerStart[i];
             this.fingerCurr[i] = this.fingerStart[i];
-
-            this.etaPrev[i] = -this.fingerPrev[i];
-            this.etaCurr[i] = -this.fingerCurr[i];
+            this.fingerNext[i] = this.fingerStart[i];
+            
+ //           this.fingerV[i] = 0;
+//            this.psi[i] = 0;
         }
 
         this.fretPressed = new Array(nFrets).fill(0.0);
