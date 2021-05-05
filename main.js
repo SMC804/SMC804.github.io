@@ -15,7 +15,7 @@ let mousedownToStrum = false;
 let mouseIsDown = false;
 
 const nStrings = 8;
-const nFrets = 7;
+const nFrets = 14;
 
 // Advanced parameters
 let advancedParametersEnabled = true;
@@ -54,8 +54,8 @@ window.onresize = resizeCanvas;
 var stringHeight;
 
 //let fretsDown = [false, false, false, false, false, false, false, false, false, false, false, false, false, false];
-//let fretTuning = [0.1111, 0.2099, 0.25, 0.3333, 0.4074, 0.4733, 0.5, 0.1111, 0.2099, 0.25, 0.3333, 0.4074, 0.4733, 0.5];
-let fretTuning = [0.1111, 0.2099, 0.25, 0.3333, 0.4074, 0.4733, 0.5];
+let fretTuning = [0.1091, 0.2063, 0.2508, 0.3326, 0.4054, 0.4703, 0.5, 0.5546, 0.6032, 0.6254, 0.6663, 0.7027, 0.7351, 0.75]; // ((L-PrevFret)/17.817)+PrevFret
+// let fretTuning = [0.1111, 0.2099, 0.25, 0.3333, 0.4074, 0.4733, 0.5]; // Pythagorean
 let fretsDown = Array(fretTuning.length).fill(false);
 
 class LangString {
@@ -426,29 +426,29 @@ async function play(i, inputPoint, duration)
 }
 
 function fretting(e, down) {
-    // Diatonic major scale pythagorean tuning
+    // Tuning: https://archive.siam.org/careers/pdf/guitar.pdf
         switch (e.code) {
-        //case "KeyM":
-                //fretsDown[13] = down;
-            //break;
-        //case "KeyN":
-                //fretsDown[12] = down;
-            //break;
-        //case "KeyB":
-                //fretsDown[11] = down;
-            //break;
-        //case "KeyV":
-                //fretsDown[10] = down;
-            //break;
-        //case "KeyC":
-                //fretsDown[9] = down;
-            //break;
-        //case "KeyX":
-                //fretsDown[8] = down;
-            //break;
-        //case "KeyZ":
-                //fretsDown[7] = down;
-            //break;
+        case "KeyM":
+                fretsDown[13] = down;
+            break;
+        case "KeyN":
+                fretsDown[12] = down;
+            break;
+        case "KeyB":
+                fretsDown[11] = down;
+            break;
+        case "KeyV":
+                fretsDown[10] = down;
+            break;
+        case "KeyC":
+                fretsDown[9] = down;
+            break;
+        case "KeyX":
+                fretsDown[8] = down;
+            break;
+        case "KeyZ":
+                fretsDown[7] = down;
+            break;
         case "KeyJ":
                 fretsDown[6] = down;
             break;

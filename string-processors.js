@@ -40,7 +40,7 @@ class StringProcessor extends AudioWorkletProcessor
         return [
             {
                 name: 'listeningpoint',
-                defaultValue: 0.7,
+                defaultValue: 0.8,
                 minValue: 0,
                 maxValue: 1,
                 automationRate: 'k-rate'
@@ -294,7 +294,7 @@ class MelodyStringProcessor extends StringProcessor {
     }
 
     // This needs to be statically defined so that the parameterDescriptor matches
-    static get NFRETS() { return 7; }
+    static get NFRETS() { return 14; }
 
     static get parameterDescriptors()
     {
