@@ -184,10 +184,10 @@ class MelodyStringProcessor extends StringProcessor {
         let nFrets = MelodyStringProcessor.NFRETS;
         for (let i = 0; i < nFrets; i++) {
             let fretPressed = parameters[`fret${i}pressed`][0];
-            this.fingerStart[i] = parameters[`fret${i}fingerstart`];
-            this.fingerStop[i] = parameters[`fret${i}fingerstop`];
-            this.initialFingerV[i] = parameters[`fret${i}initialfingerv`];
-            this.fingerMass[i] = parameters[`fret${i}fingermass`];
+            this.fingerStart[i] = parameters[`fret${i}fingerstart`][0];
+            this.fingerStop[i] = parameters[`fret${i}fingerstop`][0];
+            this.initialFingerV[i] = parameters[`fret${i}initialfingerv`][0];
+            this.fingerMass[i] = parameters[`fret${i}fingermass`][0];
 
             if (fretPressed !== this.fretPressed[i]) {
                 if (fretPressed) {
