@@ -1,6 +1,7 @@
 let AudioContext = window.AudioContext || window.webkitAudioContext;
 let audioCtx;
 let dspNodes;
+let stringGainNodes;
 let mergeChannelNode;
 let dryGainNode;
 let wetGainNode;
@@ -13,8 +14,22 @@ let gain = 0.80;
 let mousedownToStrum = false;
 let mouseIsDown = false;
 
+const nStrings = 8;
+const nFrets = 7;
+
 // Advanced parameters
+let advancedParametersEnabled = true;
+let controlSliders = new Array();
 let wetMix = 0.8;
+let K = 1e14;
+let alpha = 3.0;
+let maxStrumForce = 10;
+let strumDurationDivider = 10;
+let stringGainVal = new Array(nStrings).fill(100);
+let fingerStartVal = new Array(nFrets).fill(5e-3);
+let fingerStopVal = new Array(nFrets).fill(-1e-3);
+let initialFingerVVal = new Array(nFrets).fill(-5);
+let fingermassVal = new Array(nFrets).fill(1e-4);
 
 window.requestAnimFrame = (function() {
     return  window.requestAnimationFrame ||
@@ -37,8 +52,6 @@ window.onload = resizeCanvas;
 window.onresize = resizeCanvas;
 
 var stringHeight;
-
-const nStrings = 8;
 
 //let fretsDown = [false, false, false, false, false, false, false, false, false, false, false, false, false, false];
 //let fretTuning = [0.1111, 0.2099, 0.25, 0.3333, 0.4074, 0.4733, 0.5, 0.1111, 0.2099, 0.25, 0.3333, 0.4074, 0.4733, 0.5];
@@ -72,7 +85,6 @@ class LangString {
         this.canvas.onmouseleave = (e) => {
             if (!(mousedownToStrum && !mouseIsDown)) {
                 var duration = Date.now() - this.mouseentertime;
-                console.log("Strum duration", duration);
                 var rect = e.target.getBoundingClientRect();
                 var pos = (e.clientX - rect.left) / rect.width;
                 play(this.number, pos, duration);
@@ -100,6 +112,30 @@ class LangString {
     }
 }
 
+class ControlSlider {
+    constructor(parent, label, func, min, max, value, step=1.0, index=0) {
+        this.box = document.createElement("div");
+        this.box.className = "controls";
+        this.box.innerHTML = label;
+        this.slider = document.createElement("input");
+        this.slider.id = label;
+        this.slider.type = "range";
+        this.slider.step = step;
+        this.slider.min = min;
+        this.slider.max = max;
+        this.slider.value = value;
+        this.index = index;
+        this.func = func;
+        this.slider.oninput = () => {
+            this.func(this.slider.value, this.index);
+        }
+        this.box.appendChild(this.slider);
+        parent.appendChild(this.box);
+
+    }
+}
+
+
 this.buildSplashScreen();
 
 function resizeCanvas() {
@@ -120,29 +156,6 @@ function buildLangeleik() {
     stringDiv.style.paddingTop = 4*stringHeight + "px";
     lang.appendChild(stringDiv);
 
-    // Inital stuff if we want to draw the langeleik
-    // // var ctx = canvas.getContext("2d");
-    // // var gradient = ctx.createLinearGradient(0,0,200,0);
-    // // gradient.addColorStop(0, "#964B00");
-    // // gradient.addColorStop(1, "#873C00");
-    // // ctx.fillStyle = gradient;
-    // // var cw = canvas.width;
-    // // var ch = canvas.height;
-    // // ctx.beginPath();
-    // // ctx.moveTo(0,0.1*ch);
-    // // ctx.arcTo(0.2*cw, 0.05*ch, 0.25*cw, 0, 0);
-    // // ctx.arcTo(0.35*cw, 0.05*ch, 0.50*cw, 0, 0);
-    // // ctx.arcTo(0.45*cw, 0.10*ch, 0.75*cw, 0.2*ch, 0);
-    // // ctx.lineTo(cw, 0.2*ch);
-    // // ctx.lineTo(cw, 0.8*ch);
-    // // ctx.lineTo(0.75*cw, 0.8*ch);
-    // // ctx.lineTo(0.50*cw, ch);
-    // // ctx.lineTo(0.25*cw, ch);
-    // // ctx.lineTo(0.0, 0.9*ch);
-    // // ctx.lineTo(0,0);
-    // // ctx.fill();
-    // // ctx.stroke();
-
     for (var i = nStrings-1; i >= 0; i--) {
         langStrings[i] = new LangString(stringHeight, canvas.clientWidth, i, stringDiv);
     }
@@ -154,10 +167,98 @@ function buildLangeleik() {
         });
     }
 
+    // Advanced parameters
+    var advancedSettings = document.createElement("div");
+    advancedSettings.className = "footer";
+    advancedSettings.id = "advancedSettings";
+    controlSliders.push(new ControlSlider(advancedSettings,"IR wet", setWetMix, 0.0, 1.0, wetMix, 0.01));
+    controlSliders.push(new ControlSlider(advancedSettings,"K", setKValue, 1e12, 1e16, K));
+    controlSliders.push(new ControlSlider(advancedSettings,"Alpha", setAlpha, 1.0, 4.0, alpha, 0.01));
+    controlSliders.push(new ControlSlider(advancedSettings,"Max. strum force", 
+        (val) => {
+            maxStrumForce = val;
+        }, 1, 100, maxStrumForce));
+    controlSliders.push(new ControlSlider(advancedSettings,"Strum dur. div.", 
+        (val) => {
+            strumDurationDivider = val;
+        }, 0.1, 20, strumDurationDivider, 0.1));
+    for(var i = 0; i < nStrings; i++) {
+        controlSliders.push(new ControlSlider(advancedSettings,"string " + i + " gain", 
+        (val, index) => {
+            stringGainVal[index] = val;
+            stringGainNodes[index].gain.setValueAtTime(val, audioCtx.currentTime); 
+        }, 1, 1000, stringGainVal[i], 1, i));
+    }    
+    for(var i = 0; i < nFrets; i++) {
+        var fretName = "F"+(i+1) + ": ";
+        controlSliders.push(new ControlSlider(advancedSettings,fretName+"fingerStart", 
+        (val, index) => {
+            fingerStartVal[index] = val;
+            dspNodes[0].parameters.get(`fret${index}fingerstart`).setValueAtTime(val, audioCtx.currentTime); 
+        }, 1e-3, 1e-2, fingerStartVal[i], 1e-4, i));
+        controlSliders.push(new ControlSlider(advancedSettings,fretName+"fingerStop", 
+        (val, index) => {
+            fingerStopVal[index] = val;
+            dspNodes[0].parameters.get(`fret${index}fingerstop`).setValueAtTime(val, audioCtx.currentTime); 
+        }, -1e-2, -1e-3, fingerStopVal[i], 1e-4, i));
+        controlSliders.push(new ControlSlider(advancedSettings,fretName+"initialFingerV", 
+        (val, index) => {
+            initialFingerVVal[index] = val;
+            dspNodes[0].parameters.get(`fret${index}initialfingerv`).setValueAtTime(val, audioCtx.currentTime); 
+        }, -10, -2, initialFingerVVal[i], 0.1, i));
+        controlSliders.push(new ControlSlider(advancedSettings,fretName+"fingerMass", 
+        (val, index) => {
+            fingermassVal[index] = val;
+            dspNodes[0].parameters.get(`fret${index}fingermass`).setValueAtTime(val, audioCtx.currentTime); 
+        }, 1e-4, 1e-2, fingermassVal[i], 1e-5, i));
+    }
+
+    let body = document.getElementsByTagName("BODY")[0];
+    body.appendChild(advancedSettings);
+    let saveButton = document.createElement("button");
+    saveButton.innerHTML = "Save values";
+    saveButton.onclick = () => {
+        var v = {};
+        v["wetMix"] = wetMix;
+        v["K"] = K;
+        v["alpha"] = alpha;
+        v["maxStrumForce"] = maxStrumForce;
+        v["strumDurationDivider"] = strumDurationDivider;
+        for(var i = 0; i < nStrings; i++){
+            v["stringGainVal_"+i] = stringGainVal[i];
+        }
+        for(var i = 0; i < nFrets; i++){
+            v["fingerStartVal_"+i] = fingerStartVal[i];
+            v["fingerStopVal_"+i] = fingerStopVal[i];
+            v["initialFingerVVal_"+i] = initialFingerVVal[i];
+            v["fingermassVal_"+i] = fingermassVal[i];
+        }
+        console.log(v);
+        var json = JSON.stringify(v, null, 2);
+        console.log(json);
+        download("langeleik.json", json);
+    }
+    advancedSettings.appendChild(saveButton);
+    advancedSettings.style.visibility = "hidden";
+
+    document.getElementById("generalControls").style.visibility = "visible";
     init();
     drawFrets();
     render();
 }
+
+function download(filename, text) {
+    var element = document.createElement('a');
+    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+    element.setAttribute('download', filename);
+  
+    element.style.display = 'none';
+    document.body.appendChild(element);
+  
+    element.click();
+  
+    document.body.removeChild(element);
+  }
 
 function buildSplashScreen() {
     var button = document.getElementById("playbutton");
@@ -186,6 +287,26 @@ function buildSplashScreen() {
     mousedownCheckbox.oninput = () => {
         mousedownToStrum = mousedownCheckbox.checked;
     }
+    var showAdvancedParametersCheckbox = document.getElementById("advancedParametersCheckbox");
+    showAdvancedParametersCheckbox.oninput = () => {
+        document.getElementById("advancedSettings").style.visibility = showAdvancedParametersCheckbox.checked ? "visible" : "hidden";
+    }
+}
+
+function setWetMix(val) {
+    wetMix = val;
+    dryGainNode.gain.setValueAtTime(1.0-wetMix, audioCtx.currentTime);
+    wetGainNode.gain.setValueAtTime(wetMix, audioCtx.currentTime);
+}
+
+function setKValue(val) {
+    K = val;
+    dspNodes[0].parameters.get("K").setValueAtTime(K, audioCtx.currentTime);
+}
+
+function setAlpha(val) {
+    alpha = val;
+    dspNodes[0].parameters.get("alpha").setValueAtTime(alpha, audioCtx.currentTime);
 }
 
 function drawFrets() 
@@ -215,6 +336,7 @@ async function init()
     audioCtx = new AudioContext();
     
     dspNodes = new Array(nStrings);
+    stringGainNodes = new Array(nStrings);
     await audioCtx.audioWorklet.addModule('string-processors.js');
 
     mergeChannelNode = audioCtx.createChannelMerger(8);
@@ -247,11 +369,10 @@ async function init()
         }
     });
 
-    stringGain = 100;
-    stringGainNode = audioCtx.createGain();
-    stringGainNode.gain.value = stringGain;
-    dspNodes[0].connect(stringGainNode);
-    stringGainNode.connect(mergeChannelNode);
+    stringGainNodes[0] = audioCtx.createGain();
+    stringGainNodes[0].gain.value = stringGainVal[0];
+    dspNodes[0].connect(stringGainNodes[0]);
+    stringGainNodes[0].connect(mergeChannelNode);
 
     for (let i = 1; i < nStrings; i++) {
         dspNodes[i] = new AudioWorkletNode(audioCtx, 'string-processor', {
@@ -263,10 +384,10 @@ async function init()
             }
         });
 
-        stringGainNode = audioCtx.createGain();
-        stringGainNode.gain.value = stringGain;
-        dspNodes[i].connect(stringGainNode);
-        stringGainNode.connect(mergeChannelNode);
+        stringGainNodes[i] = audioCtx.createGain();
+        stringGainNodes[i].gain.value = stringGainVal[i];
+        dspNodes[i].connect(stringGainNodes[i]);
+        stringGainNodes[i].connect(mergeChannelNode);
     }
     
     mergeChannelNode.connect(wetGainNode);
@@ -296,7 +417,7 @@ async function play(i, inputPoint, duration)
 {
     if (!audioCtx) await init();
 
-    let pluckForce = Math.max((10-duration/10), 0.1)
+    let pluckForce = Math.max((maxStrumForce-duration/strumDurationDivider), 0.1)
     let pluckDur = 0.0005;
     let pluckNode = createPluckNode(pluckForce, pluckDur);
     dspNodes[i].parameters.get('pluckingpoint').setValueAtTime(inputPoint, audioCtx.currentTime);
