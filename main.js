@@ -239,7 +239,9 @@ function buildLangeleik() {
         download("langeleik.json", json);
     }
     advancedSettings.appendChild(saveButton);
+    advancedSettings.style.visibility = "hidden";
 
+    document.getElementById("generalControls").style.visibility = "visible";
     init();
     drawFrets();
     render();
@@ -284,6 +286,10 @@ function buildSplashScreen() {
     var mousedownCheckbox = document.getElementById("mousedownCheckbox");
     mousedownCheckbox.oninput = () => {
         mousedownToStrum = mousedownCheckbox.checked;
+    }
+    var showAdvancedParametersCheckbox = document.getElementById("advancedParametersCheckbox");
+    showAdvancedParametersCheckbox.oninput = () => {
+        document.getElementById("advancedSettings").style.visibility = showAdvancedParametersCheckbox.checked ? "visible" : "hidden";
     }
 }
 

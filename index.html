@@ -12,7 +12,7 @@
         <canvas id=langeleikBody></canvas>
         <button class="playbutton" id="playbutton">Play the Langeleik</button>
     </div>
-    <div class="footer">
+    <div class="footer" id="generalControls" style="visibility: hidden;">
         <div class="controls">
             <input type="button" checked id="instructionsButton" value="Instructions">
         </div>
@@ -27,6 +27,10 @@
         <div class="controls">
             Hold down mousebutton to strum
             <input type="checkbox" id="mousedownCheckbox">
+        </div>
+        <div class="controls">
+            Show advanced parameters
+            <input type="checkbox" id="advancedParametersCheckbox">
         </div>
     </div>
     <script src="main.js"></script>
