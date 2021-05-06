@@ -54,9 +54,9 @@ window.onresize = resizeCanvas;
 
 var stringHeight;
 
-//let fretsDown = [false, false, false, false, false, false, false, false, false, false, false, false, false, false];
+
 let fretTuning = [0.1091, 0.2063, 0.2508, 0.3326, 0.4054, 0.4703, 0.5, 0.5546, 0.6032, 0.6254, 0.6663, 0.7027, 0.7351, 0.75]; // ((L-PrevFret)/17.817)+PrevFret
-// let fretTuning = [0.1111, 0.2099, 0.25, 0.3333, 0.4074, 0.4733, 0.5]; // Pythagorean
+let fretKeys = ["B", "C#", "D", "E", "F#", "G#", "A", "B", "C#", "D", "E", "F#", "G#", "A"];
 let fretsDown = Array(fretTuning.length).fill(false);
 
 class LangString {
@@ -320,7 +320,11 @@ function drawFrets()
         var fretPosX = canvas.width * fretTuning[idx];
         ctx.beginPath()
         ctx.fillStyle = "#582817";
-        ctx.fillRect(fretPosX-fretWidth/2, (12*stringHeight)-3, fretWidth, stringHeight);
+        ctx.fillRect(fretPosX-fretWidth/2, (12*stringHeight)-3, fretWidth, stringHeight*1.5);
+        ctx.font = "12px Arial";
+        // ctx.textAlign = "right";
+        var txtYOffset = (idx % 2 == 0) ? 0 : 6; 
+        ctx.fillText(fretKeys[idx],fretPosX-fretWidth/2, (14*stringHeight) + txtYOffset);
         if(down) {
             ctx.beginPath();
             ctx.arc(fretPosX, (12*stringHeight)+10, stringHeight, 0, 2 * Math.PI);
