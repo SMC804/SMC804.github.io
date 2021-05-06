@@ -20,12 +20,13 @@ const nFrets = 14;
 // Advanced parameters
 let advancedParametersEnabled = true;
 let controlSliders = new Array();
-let wetMix = 0.8;
+let wetMix = 0.6;
 let K = 1e14;
 let alpha = 3.0;
-let maxStrumForce = 10;
-let strumDurationDivider = 10;
-let stringGainVal = new Array(nStrings).fill(100);
+let maxStrumForce = 40;
+let strumDurationDivider = 5;
+let stringGainVal = new Array(nStrings).fill(70);
+stringGainVal[0] = 100;
 let fingerStartVal = new Array(nFrets).fill(5e-3);
 let fingerStopVal = new Array(nFrets).fill(-1e-3);
 let initialFingerVVal = new Array(nFrets).fill(-5);
@@ -356,8 +357,7 @@ async function init()
     splitChannelNode = audioCtx.createChannelSplitter(2);
 
     let stringLengths = [0.85, 0.80, 0.75, 0.71, 0.66, 0.52, 0.57, 0.53];
-    // let stringFrequencies = [440.0, 440.0, 440.0, 440.0, 659.25, 554.37, 659.25, 554.37]; // Tuning from book +1 octave
-    let stringFrequencies = [220.0, 220.0, 220.0, 220.0, 329.63, 220.0, 277.18, 329.63]; // Tuning from book +0 octave
+    let stringFrequencies = [220.0, 220.3, 220.6, 220.9, 329.63, 440.0, 277.18, 329.63]; // a, a, a, a, e', a', c-sharp, e
 
     dspNodes[0] = new AudioWorkletNode(audioCtx, 'melodystring-processor', {
         processorOptions: {
