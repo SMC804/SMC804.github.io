@@ -171,6 +171,11 @@ class MelodyStringProcessor extends StringProcessor {
 //            this.psi[i] = 0;
         }
 
+        for (let i = 0; i < nFrets-1; i++) {
+            if (this.fretIdx[i] === this.fretIdx[i+1] - 1) {
+                this.fretAlpha[i] = 0;
+            }
+        }
         this.fretPressed = new Array(nFrets).fill(0.0);
     }
 
