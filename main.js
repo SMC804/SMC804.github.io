@@ -15,17 +15,18 @@ let mousedownToStrum = false;
 let mouseIsDown = false;
 
 const nStrings = 8;
-const nFrets = 7;
+const nFrets = 14;
 
 // Advanced parameters
 let advancedParametersEnabled = true;
 let controlSliders = new Array();
-let wetMix = 0.8;
+let wetMix = 0.6;
 let K = 1e14;
 let alpha = 3.0;
-let maxStrumForce = 10;
-let strumDurationDivider = 10;
-let stringGainVal = new Array(nStrings).fill(100);
+let maxStrumForce = 40;
+let strumDurationDivider = 5;
+let stringGainVal = new Array(nStrings).fill(70);
+stringGainVal[0] = 100;
 let fingerStartVal = new Array(nFrets).fill(5e-3);
 let fingerStopVal = new Array(nFrets).fill(-1e-3);
 let initialFingerVVal = new Array(nFrets).fill(-5);
@@ -53,9 +54,9 @@ window.onresize = resizeCanvas;
 
 var stringHeight;
 
-//let fretsDown = [false, false, false, false, false, false, false, false, false, false, false, false, false, false];
-//let fretTuning = [0.1111, 0.2099, 0.25, 0.3333, 0.4074, 0.4733, 0.5, 0.1111, 0.2099, 0.25, 0.3333, 0.4074, 0.4733, 0.5];
-let fretTuning = [0.1111, 0.2099, 0.25, 0.3333, 0.4074, 0.4733, 0.5];
+
+let fretTuning = [0.1091, 0.2063, 0.2508, 0.3326, 0.4054, 0.4703, 0.5, 0.5546, 0.6032, 0.6254, 0.6663, 0.7027, 0.7351, 0.75]; // ((L-PrevFret)/17.817)+PrevFret
+let fretKeys = ["B", "C#", "D", "E", "F#", "G#", "A", "B", "C#", "D", "E", "F#", "G#", "A"];
 let fretsDown = Array(fretTuning.length).fill(false);
 
 class LangString {
@@ -319,7 +320,11 @@ function drawFrets()
         var fretPosX = canvas.width * fretTuning[idx];
         ctx.beginPath()
         ctx.fillStyle = "#582817";
-        ctx.fillRect(fretPosX-fretWidth/2, (12*stringHeight)-3, fretWidth, stringHeight);
+        ctx.fillRect(fretPosX-fretWidth/2, (12*stringHeight)-3, fretWidth, stringHeight*1.5);
+        ctx.font = "12px Arial";
+        // ctx.textAlign = "right";
+        var txtYOffset = (idx % 2 == 0) ? 0 : 6; 
+        ctx.fillText(fretKeys[idx],fretPosX-fretWidth/2, (14*stringHeight) + txtYOffset);
         if(down) {
             ctx.beginPath();
             ctx.arc(fretPosX, (12*stringHeight)+10, stringHeight, 0, 2 * Math.PI);
@@ -356,8 +361,7 @@ async function init()
     splitChannelNode = audioCtx.createChannelSplitter(2);
 
     let stringLengths = [0.85, 0.80, 0.75, 0.71, 0.66, 0.52, 0.57, 0.53];
-    // let stringFrequencies = [440.0, 440.0, 440.0, 440.0, 659.25, 554.37, 659.25, 554.37]; // Tuning from book +1 octave
-    let stringFrequencies = [220.0, 220.0, 220.0, 220.0, 329.63, 220.0, 277.18, 329.63]; // Tuning from book +0 octave
+    let stringFrequencies = [220.0, 220.3, 220.6, 220.9, 329.63, 440.0, 277.18, 329.63]; // a, a, a, a, e', a', c-sharp, e
 
     dspNodes[0] = new AudioWorkletNode(audioCtx, 'melodystring-processor', {
         processorOptions: {
@@ -426,29 +430,29 @@ async function play(i, inputPoint, duration)
 }
 
 function fretting(e, down) {
-    // Diatonic major scale pythagorean tuning
+    // Tuning: https://archive.siam.org/careers/pdf/guitar.pdf
         switch (e.code) {
-        //case "KeyM":
-                //fretsDown[13] = down;
-            //break;
-        //case "KeyN":
-                //fretsDown[12] = down;
-            //break;
-        //case "KeyB":
-                //fretsDown[11] = down;
-            //break;
-        //case "KeyV":
-                //fretsDown[10] = down;
-            //break;
-        //case "KeyC":
-                //fretsDown[9] = down;
-            //break;
-        //case "KeyX":
-                //fretsDown[8] = down;
-            //break;
-        //case "KeyZ":
-                //fretsDown[7] = down;
-            //break;
+        case "KeyM":
+                fretsDown[13] = down;
+            break;
+        case "KeyN":
+                fretsDown[12] = down;
+            break;
+        case "KeyB":
+                fretsDown[11] = down;
+            break;
+        case "KeyV":
+                fretsDown[10] = down;
+            break;
+        case "KeyC":
+                fretsDown[9] = down;
+            break;
+        case "KeyX":
+                fretsDown[8] = down;
+            break;
+        case "KeyZ":
+                fretsDown[7] = down;
+            break;
         case "KeyJ":
                 fretsDown[6] = down;
             break;

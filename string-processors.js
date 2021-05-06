@@ -40,7 +40,7 @@ class StringProcessor extends AudioWorkletProcessor
         return [
             {
                 name: 'listeningpoint',
-                defaultValue: 0.7,
+                defaultValue: 0.8,
                 minValue: 0,
                 maxValue: 1,
                 automationRate: 'k-rate'
@@ -171,6 +171,11 @@ class MelodyStringProcessor extends StringProcessor {
 //            this.psi[i] = 0;
         }
 
+        for (let i = 0; i < nFrets-1; i++) {
+            if (this.fretIdx[i] === this.fretIdx[i+1] - 1) {
+                this.fretAlpha[i] = 0;
+            }
+        }
         this.fretPressed = new Array(nFrets).fill(0.0);
     }
 
@@ -294,7 +299,7 @@ class MelodyStringProcessor extends StringProcessor {
     }
 
     // This needs to be statically defined so that the parameterDescriptor matches
-    static get NFRETS() { return 7; }
+    static get NFRETS() { return 14; }
 
     static get parameterDescriptors()
     {
