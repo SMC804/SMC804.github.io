@@ -327,7 +327,13 @@ function drawFrets()
     fretsDown.forEach((down, idx) => {
         var fretPosX = canvas.width * fretTuning[idx];
         ctx.beginPath()
-        ctx.fillStyle = "#582817";
+        if (idx < 7) {
+            ctx.fillStyle = "#FA533D";
+        }
+        else {
+            ctx.fillStyle = "#3E8AFA";
+        }
+
         ctx.fillRect(fretPosX-fretWidth/2, (12*stringHeight)-3, fretWidth, stringHeight*1.5);
         ctx.font = "12px Arial";
         // ctx.textAlign = "right";
