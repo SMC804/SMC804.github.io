@@ -274,6 +274,9 @@ function buildSplashScreen() {
         overlay.style.display = "block";
         overlay.onclick = () => {
             document.getElementById("overlay").style.display = "none";
+            var iframe = document.getElementById("video");
+            var src = iframe.src;
+            iframe.src = src;
         }
     }
     var soundCheckbox = document.getElementById("soundCheckbox");
