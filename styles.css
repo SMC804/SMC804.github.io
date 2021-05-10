@@ -120,7 +120,7 @@ html, body {
 
 #instructions {
 	position: relative; 
-  display: block; 
+  display: flex; 
   width: 50%; 
   height: 50%; 
   margin: 0 auto;
@@ -129,5 +129,6 @@ html, body {
   cursor: pointer;
 	padding: 2%;
 	text-align: center;
+	align-items: center;
 }
         
