@@ -130,5 +130,6 @@ html, body {
 	padding: 2%;
 	text-align: center;
 	align-items: center;
+	flex-direction: column;
 }
         
