@@ -143,6 +143,7 @@ function resizeCanvas() {
     var canvas = document.getElementById("langeleikBody");
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
+    drawFrets();
 }
 
 function buildLangeleik() {
@@ -269,7 +270,11 @@ function buildSplashScreen() {
     }
     var instructionsButton = document.getElementById("instructionsButton");
     instructionsButton.onclick = () => {
-        console.log("Show instructions");
+        var overlay = document.getElementById("overlay");
+        overlay.style.display = "block";
+        overlay.onclick = () => {
+            document.getElementById("overlay").style.display = "none";
+        }
     }
     var soundCheckbox = document.getElementById("soundCheckbox");
     soundCheckbox.oninput = () => {
