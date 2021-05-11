@@ -438,6 +438,7 @@ async function play(i, inputPoint, duration)
     let pluckForce = Math.max((maxStrumForce-duration/strumDurationDivider), 0.1)
     let pluckDur = 0.0005;
     let pluckNode = createPluckNode(pluckForce, pluckDur);
+    if (i == 0) inputPoint = 0.77;
     dspNodes[i].parameters.get('pluckingpoint').setValueAtTime(inputPoint, audioCtx.currentTime);
     pluckNode.connect(dspNodes[i]);
     pluckNode.start(audioCtx.currentTime);
