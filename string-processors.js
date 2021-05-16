@@ -43,12 +43,17 @@ class StringProcessor extends AudioWorkletProcessor
 
         // Coefficients for the current grid points
         this.b1 = -this.Emod * this.I / this.h**4;
-        this.b2 = (this.T*this.h**2 + 4*this.Emod*this.I + 2*this.rho*this.Area*this.sigma1*this.h**2/this.k) / this.h**4;
-        this.b3 = (-2*this.T*this.h**2 -6*this.Emod*this.I - 2*this.rho*this.Area*this.sigma0*this.h**4/this.k - 4*this.rho*this.Area*this.sigma1*this.h**2/this.k + 2*this.rho*this.Area*this.h**4/this.k**2) / this.h**4;
+        this.b2 = (this.T*this.h**2 + 4*this.Emod*this.I + 2*this.rho*this.Area*this.sigma1*this.h**2/this.k)
+            / this.h**4;
+
+        this.b3 = (-2*this.T*this.h**2 -6*this.Emod*this.I - 2*this.rho*this.Area*this.sigma0*this.h**4/this.k
+            - 4*this.rho*this.Area*this.sigma1*this.h**2/this.k + 2*this.rho*this.Area*this.h**4/this.k**2) 
+            / this.h**4;
         
         // Coefficients for the previous grid points
         this.c1 = -2*this.rho*this.Area*this.sigma1/this.h**2/this.k;
-        this.c2 = 2*this.rho*this.Area*this.sigma0/this.k + 4*this.rho*this.Area*this.sigma1/this.h**2/this.k - this.rho*this.Area/this.k**2;
+        this.c2 = 2*this.rho*this.Area*this.sigma0/this.k + 4*this.rho*this.Area*this.sigma1/this.h**2/this.k
+            - this.rho*this.Area/this.k**2;
 
         // normalizing factor for a stiff string
         this.a = this.rho * this.Area / this.k**2;
