@@ -54,9 +54,12 @@ window.onresize = resizeCanvas;
 
 var stringHeight;
 
+ // ((L-PrevFret)/17.817)+PrevFret
+let fretTuning = [0.1091, 0.2063, 0.2508, 0.3326, 0.4054, 0.4703, 0.5,
+                  0.5546, 0.6032, 0.6254, 0.6663, 0.7027, 0.7351, 0.75];
 
-let fretTuning = [0.1091, 0.2063, 0.2508, 0.3326, 0.4054, 0.4703, 0.5, 0.5546, 0.6032, 0.6254, 0.6663, 0.7027, 0.7351, 0.75]; // ((L-PrevFret)/17.817)+PrevFret
-let fretKeys = ["B", "C#", "D", "E", "F#", "G#", "A", "B", "C#", "D", "E", "F#", "G#", "A"];
+let fretKeys = ["B", "C#", "D", "E", "F#", "G#", "A",
+                "B", "C#", "D", "E", "F#", "G#", "A"];
 let fretsDown = Array(fretTuning.length).fill(false);
 
 class LangString {
@@ -298,7 +301,8 @@ function buildSplashScreen() {
     }
     var showAdvancedParametersCheckbox = document.getElementById("advancedParametersCheckbox");
     showAdvancedParametersCheckbox.oninput = () => {
-        document.getElementById("advancedSettings").style.visibility = showAdvancedParametersCheckbox.checked ? "visible" : "hidden";
+        document.getElementById("advancedSettings").style.visibility =
+            showAdvancedParametersCheckbox.checked ? "visible" : "hidden";
     }
 }
 
@@ -375,7 +379,9 @@ async function init()
     splitChannelNode = audioCtx.createChannelSplitter(2);
 
     let stringLengths = [0.85, 0.80, 0.75, 0.71, 0.66, 0.52, 0.57, 0.53];
-    let stringFrequencies = [220.0, 220.3, 220.6, 220.9, 329.63, 440.0, 277.18, 329.63]; // a, a, a, a, e', a', c-sharp, e
+
+    // a, a, a, a, e', a', c-sharp, e
+    let stringFrequencies = [220.0, 220.3, 220.6, 220.9, 329.63, 440.0, 277.18, 329.63];
 
     dspNodes[0] = new AudioWorkletNode(audioCtx, 'melodystring-processor', {
         processorOptions: {
