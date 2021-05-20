@@ -271,8 +271,8 @@ function buildSplashScreen() {
         this.buildLangeleik();
         this.lang.removeChild(button);
     }
-    var instructionsButton = document.getElementById("instructionsButton");
-    instructionsButton.onclick = () => {
+    var exampleButton = document.getElementById("exampleButton");
+    exampleButton.onclick = () => {
         var overlay = document.getElementById("overlay");
         overlay.style.display = "block";
         overlay.onclick = () => {
@@ -301,6 +301,9 @@ function buildSplashScreen() {
     }
     var showAdvancedParametersCheckbox = document.getElementById("advancedParametersCheckbox");
     showAdvancedParametersCheckbox.oninput = () => {
+        var instructions = document.getElementById("instructions");
+        instructions.style.visibility = showAdvancedParametersCheckbox.checked ? "hidden" : "visible";
+        instructions.style.height = showAdvancedParametersCheckbox.checked ? "0" : "auto";
         document.getElementById("advancedSettings").style.visibility =
             showAdvancedParametersCheckbox.checked ? "visible" : "hidden";
     }
@@ -380,7 +383,7 @@ async function init()
 
     let stringLengths = [0.85, 0.80, 0.75, 0.71, 0.66, 0.52, 0.57, 0.53];
 
-    // a, a, a, a, e', a', c-sharp, e
+    // a, a, a, a, e', a', c-sharp', e'
     let stringFrequencies = [220.0, 220.3, 220.6, 220.9, 329.63, 440.0, 277.18, 329.63];
 
     dspNodes[0] = new AudioWorkletNode(audioCtx, 'melodystring-processor', {

@@ -84,6 +84,7 @@ html, body {
 	background-color: lightgrey;
 	flex-wrap: wrap;
 	height: auto;
+	z-index: 1001;
 }
 
 .controls {
@@ -100,7 +101,7 @@ html, body {
 	margin: 0 auto;
 }
 
-#instructionsButton {
+#exampleButton {
 	font-size: 18px;
 }
 
@@ -118,7 +119,7 @@ html, body {
   cursor: pointer; 
 }
 
-#instructions {
+#example {
 	position: relative; 
   display: flex; 
   width: 50%; 
@@ -127,6 +128,16 @@ html, body {
   background-color: white; 
   z-index: 1001;
   cursor: pointer;
+	padding: 2%;
+	text-align: center;
+	align-items: center;
+	flex-direction: column;
+}
+
+#instructions {
+	position: relative; 
+  display: flex; 
+  margin: 0 auto;
 	padding: 2%;
 	text-align: center;
 	align-items: center;

@@ -12,9 +12,15 @@
         <canvas id=langeleikBody></canvas>
         <button class="playbutton" id="playbutton">Play the Langeleik</button>
     </div>
+    <div id="instructions">
+        They frets of the Langeleik can be played using your keyboard. <br />
+        The first octave is played using the key row from A to J. <br />
+        The second octave is played using the key row from Z to M.
+        <img src="keys.png">
+    </div>
     <div class="footer" id="generalControls" style="visibility: hidden;">
         <div class="controls">
-            <input type="button" checked id="instructionsButton" value="Instructions">
+            <input type="button" checked id="exampleButton" value="Langeleik example">
         </div>
         <div class="controls">
             Sound on
@@ -35,9 +41,8 @@
     </div>
     <script src="main.js"></script>
     <div id="overlay">
-        <div id="instructions">
-            <img src="keys.png">
-            <iframe id="video" width="396" height="223" src="https://www.youtube.com/embed/-i9h28DcTV0"
+        <div id="example">
+            <iframe id="video" width="595" height="334" src="https://www.youtube.com/embed/-i9h28DcTV0"
                     title="YouTube video player" frameborder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowfullscreen>
@@ -46,3 +51,4 @@
     </div>
 </body>
 </html>
+
