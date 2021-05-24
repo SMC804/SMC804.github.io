@@ -381,7 +381,7 @@ async function init()
     audioOnNode.gain.value = 1.0;
     splitChannelNode = audioCtx.createChannelSplitter(2);
 
-    let stringLengths = [0.85, 0.80, 0.75, 0.71, 0.66, 0.52, 0.57, 0.53];
+    let stringLengths = [0.85, 0.80, 0.75, 0.71, 0.66, 0.57, 0.53, 0.52];
 
     // a, a, a, a, e', a', c-sharp', e'
     let stringFrequencies = [220.0, 220.3, 220.6, 220.9, 329.63, 440.0, 277.18, 329.63];
