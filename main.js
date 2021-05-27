@@ -1,5 +1,8 @@
+// Web Audio Context object
 let AudioContext = window.AudioContext || window.webkitAudioContext;
 let audioCtx;
+
+// Web Audio processing nodes
 let dspNodes;
 let stringGainNodes;
 let mergeChannelNode;
@@ -10,12 +13,20 @@ let splitChannelNode;
 let gainNode;
 let audioOnNode;
 
+// Parameters
 let gain = 0.80;
 let mousedownToStrum = false;
 let mouseIsDown = false;
-
 const nStrings = 8;
 const nFrets = 14;
+var stringHeight;
+let fretTuning = [0.1091, 0.2063, 0.2508, 0.3326, 0.4054, 0.4703, 0.5,
+                  0.5546, 0.6032, 0.6254, 0.6663, 0.7027, 0.7351, 0.75];
+let fretKeys = ["B", "C#", "D", "E", "F#", "G#", "A",
+                "B", "C#", "D", "E", "F#", "G#", "A"];
+let fretsDown = Array(fretTuning.length).fill(false);
+let stringLengths = [0.85, 0.80, 0.75, 0.71, 0.66, 0.57, 0.53, 0.52];
+let stringFrequencies = [220.0, 220.3, 220.6, 220.9, 329.63, 440.0, 277.18, 329.63];
 
 // Advanced parameters
 let advancedParametersEnabled = true;
@@ -32,6 +43,7 @@ let fingerStopVal = new Array(nFrets).fill(-1e-3);
 let initialFingerVVal = new Array(nFrets).fill(-5);
 let fingermassVal = new Array(nFrets).fill(1e-4);
 
+// String vibration animation
 window.requestAnimFrame = (function() {
     return  window.requestAnimationFrame ||
             window.webkitRequestAnimationFrame ||
@@ -42,27 +54,25 @@ window.requestAnimFrame = (function() {
                 window.setTimeout(callback, 1000 / 60);
             };
   })();
-  
+
+// Bind event listeners  
 var lang = document.getElementById("langeleik");
 document.body.addEventListener('keydown', e => {fretting(e, true)});
 document.body.addEventListener('keyup', e => {fretting(e, false)});
 document.body.addEventListener('mousedown', e => {mouseIsDown = true});
 document.body.addEventListener('mouseup', e => {mouseIsDown = false});
 
+// Call the resize funtion whenever the window size changes to redraw stuff
 window.onload = resizeCanvas;
 window.onresize = resizeCanvas;
 
-var stringHeight;
-
- // ((L-PrevFret)/17.817)+PrevFret
-let fretTuning = [0.1091, 0.2063, 0.2508, 0.3326, 0.4054, 0.4703, 0.5,
-                  0.5546, 0.6032, 0.6254, 0.6663, 0.7027, 0.7351, 0.75];
-
-let fretKeys = ["B", "C#", "D", "E", "F#", "G#", "A",
-                "B", "C#", "D", "E", "F#", "G#", "A"];
-let fretsDown = Array(fretTuning.length).fill(false);
+// Called on page load
+this.buildSplashScreen();
 
 class LangString {
+    // Langeleik string class 
+    // Draws the string and attaches mouse interaction events to play() function
+
     constructor(height, width, number, parent) {
         this.height = height;
         this.width = width;
@@ -117,6 +127,8 @@ class LangString {
 }
 
 class ControlSlider {
+    // Class for easy creation of multiple slider parameters
+
     constructor(parent, label, func, min, max, value, step=1.0, index=0) {
         this.box = document.createElement("div");
         this.box.className = "controls";
@@ -139,9 +151,7 @@ class ControlSlider {
     }
 }
 
-
-this.buildSplashScreen();
-
+// Redraw some Langeleik elements when page size is changed
 function resizeCanvas() {
     var canvas = document.getElementById("langeleikBody");
     canvas.width = canvas.clientWidth;
@@ -149,8 +159,9 @@ function resizeCanvas() {
     drawFrets();
 }
 
+// Create Langeleik strings and controls
+// Calls Web Audio init function
 function buildLangeleik() {
-
     var canvas = document.getElementById("langeleikBody");
     stringHeight = canvas.clientHeight / 20;
 
@@ -172,7 +183,7 @@ function buildLangeleik() {
         });
     }
 
-    // Advanced parameters
+    // Advanced parameters ---- start ----
     var advancedSettings = document.createElement("div");
     advancedSettings.className = "footer";
     advancedSettings.id = "advancedSettings";
@@ -245,6 +256,7 @@ function buildLangeleik() {
     }
     advancedSettings.appendChild(saveButton);
     advancedSettings.style.visibility = "hidden";
+    // Advanced parameters ---- end ----
 
     document.getElementById("generalControls").style.visibility = "visible";
     init();
@@ -252,6 +264,7 @@ function buildLangeleik() {
     render();
 }
 
+// Helper function so we can download all the parameter values as json
 function download(filename, text) {
     var element = document.createElement('a');
     element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
@@ -265,6 +278,8 @@ function download(filename, text) {
     document.body.removeChild(element);
   }
 
+// Build initial splash screen on load. 
+// This is done because we cannot initialize audio in Chrome before user interaction 
 function buildSplashScreen() {
     var button = document.getElementById("playbutton");
     button.onclick = () => {
@@ -309,6 +324,7 @@ function buildSplashScreen() {
     }
 }
 
+// Control functions for some advanced parameters ---- start ----
 function setWetMix(val) {
     wetMix = val;
     dryGainNode.gain.setValueAtTime(1.0-wetMix, audioCtx.currentTime);
@@ -324,7 +340,9 @@ function setAlpha(val) {
     alpha = val;
     dspNodes[0].parameters.get("alpha").setValueAtTime(alpha, audioCtx.currentTime);
 }
+// Control functions for some advanced parameters ---- end ----
 
+// Draw the frets and corresponding notes on the melody string
 function drawFrets() 
 {
     var canvas = document.getElementById("langeleikBody");
@@ -357,6 +375,7 @@ function drawFrets()
     });
 }
 
+// Initializes Web Audio context, creates Web Audio nodes and audio routing graph
 async function init()
 {
     audioCtx = new AudioContext();
@@ -380,12 +399,6 @@ async function init()
     audioOnNode = audioCtx.createGain();
     audioOnNode.gain.value = 1.0;
     splitChannelNode = audioCtx.createChannelSplitter(2);
-
-    let stringLengths = [0.85, 0.80, 0.75, 0.71, 0.66, 0.57, 0.53, 0.52];
-
-    // a, a, a, a, e', a', c-sharp', e'
-    let stringFrequencies = [220.0, 220.3, 220.6, 220.9, 329.63, 440.0, 277.18, 329.63];
-
     dspNodes[0] = new AudioWorkletNode(audioCtx, 'melodystring-processor', {
         processorOptions: {
             fs: audioCtx.sampleRate,
@@ -427,6 +440,7 @@ async function init()
     splitChannelNode.connect(audioCtx.destination);
 }
 
+// Returns a single one-shot buffer node with exitation force data
 function createPluckNode(maxForce, pluckDur)
 {
     let pluckNode = audioCtx.createBufferSource();
@@ -440,6 +454,8 @@ function createPluckNode(maxForce, pluckDur)
     return pluckNode;
 }
 
+// Called by LangString UI object when strummed.
+// Input is string index, strum location and duration between mouseenter and mouseleave events
 async function play(i, inputPoint, duration)
 {
     if (!audioCtx) await init();
@@ -453,8 +469,9 @@ async function play(i, inputPoint, duration)
     pluckNode.start(audioCtx.currentTime);
 }
 
+// Called on keypress
+// Input is key event code and whether key action is down or up
 function fretting(e, down) {
-    // Tuning: https://archive.siam.org/careers/pdf/guitar.pdf
         switch (e.code) {
         case "KeyM":
                 fretsDown[13] = down;
