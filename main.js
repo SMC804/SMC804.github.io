@@ -378,27 +378,32 @@ function drawFrets()
 // Initializes Web Audio context, creates Web Audio nodes and audio routing graph
 async function init()
 {
+    // Get audio context and initialize stuff for the string- and melody string processors
     audioCtx = new AudioContext();
-    
     dspNodes = new Array(nStrings);
     stringGainNodes = new Array(nStrings);
     await audioCtx.audioWorklet.addModule('string-processors.js');
 
+    // Create node to merge the eight string nodes into one channel
     mergeChannelNode = audioCtx.createChannelMerger(8);
+    // Create convolver node and load impulse response for the body
     convolverNode = audioCtx.createConvolver();
-    // Load impulse response
     let IR = await fetch("./IR.wav");
     let IRbuffer = await IR.arrayBuffer();
+    convolverNode.buffer = await audioCtx.decodeAudioData(IRbuffer);
+    // Create two gain nodes for controlling the dry/wet mix of the impulse response
     dryGainNode = audioCtx.createGain();
     dryGainNode.gain.value = 1 - wetMix;
     wetGainNode = audioCtx.createGain();
     wetGainNode.gain.value = wetMix;
-    convolverNode.buffer = await audioCtx.decodeAudioData(IRbuffer);
+    // Create gain node for master gain and audio on/off 
     gainNode = audioCtx.createGain();
     gainNode.gain.value = gain;
     audioOnNode = audioCtx.createGain();
     audioOnNode.gain.value = 1.0;
+    // Create node to split the output channel of the Langeleik model into two channels for stereo
     splitChannelNode = audioCtx.createChannelSplitter(2);
+    // Create the melody string node
     dspNodes[0] = new AudioWorkletNode(audioCtx, 'melodystring-processor', {
         processorOptions: {
             fs: audioCtx.sampleRate,
@@ -408,12 +413,14 @@ async function init()
             fretPos: fretTuning
         }
     });
-
+    // Create gain for the melody string node.
     stringGainNodes[0] = audioCtx.createGain();
     stringGainNodes[0].gain.value = stringGainVal[0];
+    // Connect the nodes: melody string node -> gain node -> merge node
     dspNodes[0].connect(stringGainNodes[0]);
     stringGainNodes[0].connect(mergeChannelNode);
 
+    // Create the seven drone string nodes
     for (let i = 1; i < nStrings; i++) {
         dspNodes[i] = new AudioWorkletNode(audioCtx, 'string-processor', {
             processorOptions: {
@@ -424,19 +431,27 @@ async function init()
             }
         });
 
+        // For each string create a gain node
         stringGainNodes[i] = audioCtx.createGain();
         stringGainNodes[i].gain.value = stringGainVal[i];
+        // Connect string node -> gain node -> merge node
         dspNodes[i].connect(stringGainNodes[i]);
         stringGainNodes[i].connect(mergeChannelNode);
     }
     
+    // Connect the merge node to both gain nodes in the dry/wet mix
     mergeChannelNode.connect(wetGainNode);
     mergeChannelNode.connect(dryGainNode);
+    // Connect the gain node for wet mix to the convolver node
     wetGainNode.connect(convolverNode);
+    // Connect both convolver node and dry gain nodes to the master gain node
     dryGainNode.connect(gainNode);
     convolverNode.connect(gainNode);
+    // Connect master gain node to audio on/off gain node
     gainNode.connect(audioOnNode);
+    // Connect audio on/off gain node to split channel node
     audioOnNode.connect(splitChannelNode);
+    // Connect spit channel node to stereo output destination
     splitChannelNode.connect(audioCtx.destination);
 }
 
